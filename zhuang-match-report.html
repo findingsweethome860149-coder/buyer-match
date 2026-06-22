@@ -5,49 +5,49 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>莊小姐 專屬物件配對 — 愛家的綸</title>
 <style>
-  * {{ box-sizing: border-box; margin: 0; padding: 0; }}
-  body {{ font-family: 'Noto Sans TC', '微軟正黑體', sans-serif; background: #f7f3ed; color: #2c2c2c; }}
-  .hero {{ display: flex; min-height: 200px; background: #f7f3ed; overflow: hidden; border-bottom: 3px solid #3d6b4f; }}
-  .hero-left {{ flex: 1; padding: 36px 32px; display: flex; flex-direction: column; justify-content: center; gap: 14px; }}
-  .hero-logo {{ width: 80px; }}
-  .hero-tagline {{ font-size: 1.5rem; font-weight: 700; color: #2c2c2c; line-height: 1.6; }}
-  .hero-sub {{ font-size: 0.88rem; color: #5a5a5a; line-height: 1.8; }}
-  .hero-right {{ width: 320px; min-width: 220px; overflow: hidden; }}
-  .hero-right img {{ width: 100%; height: 100%; object-fit: cover; object-position: top center; }}
-  .agent-bar {{ background: #3d6b4f; color: #fff; padding: 12px 28px; display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }}
-  .agent-bar .name {{ font-weight: 700; font-size: 1rem; }}
-  .agent-bar .info {{ font-size: 0.82rem; opacity: 0.9; }}
-  .agent-bar a {{ color: #b8dfc8; text-decoration: none; font-size: 0.82rem; }}
-  .agent-bar a:hover {{ color: #fff; }}
-  .buyer-section {{ max-width: 900px; margin: 28px auto; padding: 0 16px; }}
-  .buyer-card {{ background: #fff; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.07); margin-bottom: 36px; overflow: hidden; border: 1px solid #e5ddd4; }}
-  .buyer-header {{ background: #3d6b4f; color: #fff; padding: 18px 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }}
-  .buyer-header h2 {{ font-size: 1.15rem; }}
-  .buyer-header .match-count {{ background: #f7f3ed; color: #3d6b4f; font-weight: 700; font-size: 0.85rem; padding: 4px 14px; border-radius: 20px; }}
-  .buyer-needs {{ background: #f0ebe3; padding: 14px 24px; display: flex; flex-wrap: wrap; gap: 8px; border-bottom: 1px solid #e5ddd4; }}
-  .tag {{ background: #fff; border: 1px solid #b8cfbe; color: #3d6b4f; font-size: 0.8rem; padding: 4px 12px; border-radius: 20px; }}
-  .tag.special {{ background: #fdf4e3; border-color: #e0c070; color: #7a5800; }}
-  .prop-list {{ padding: 16px 24px; }}
-  .prop-item {{ border: 1px solid #e5ddd4; border-radius: 8px; padding: 14px 16px; margin-bottom: 12px; display: flex; align-items: flex-start; gap: 12px; transition: box-shadow 0.2s; position: relative; background: #fff; }}
-  .prop-item:hover {{ box-shadow: 0 4px 16px rgba(61,107,79,0.12); border-color: #3d6b4f; }}
-  .prop-item:last-child {{ margin-bottom: 0; }}
-  .prop-thumb {{ width: 120px; min-width: 120px; height: 88px; object-fit: cover; border-radius: 6px; background: #e8e2d8; }}
-  .prop-info {{ flex: 1; }}
-  .prop-title {{ font-weight: 700; font-size: 0.98rem; color: #3d6b4f; margin-bottom: 4px; }}
-  .prop-addr {{ font-size: 0.82rem; color: #777; margin-bottom: 6px; }}
-  .prop-meta {{ display: flex; flex-wrap: wrap; gap: 6px; }}
-  .meta-tag {{ background: #f0ebe3; font-size: 0.75rem; padding: 2px 8px; border-radius: 4px; color: #5a5a5a; }}
-  .meta-tag.highlight {{ background: #fdf4e3; color: #7a5800; }}
-  .prop-price {{ text-align: right; min-width: 90px; }}
-  .price-main {{ font-size: 1.1rem; font-weight: 700; color: #c0392b; }}
-  .price-sub {{ font-size: 0.75rem; color: #aaa; margin-top: 2px; }}
-  .btn-line {{ display: inline-block; margin-top: 8px; background: #06C755; color: #fff; font-size: 0.78rem; font-weight: 700; padding: 6px 14px; border-radius: 6px; text-decoration: none; letter-spacing: 0.5px; }}
-  .btn-line:hover {{ background: #05a847; }}
-  .prop-actions {{ display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }}
-  .footer {{ background: #2c2c2c; color: #aaa; text-align: center; padding: 28px 16px; font-size: 0.82rem; margin-top: 20px; }}
-  .footer strong {{ color: #fff; }}
-  .footer a {{ color: #7ab68a; text-decoration: none; }}
-  @media(max-width:640px) {{ .hero-right {{ display: none; }} .prop-item {{ flex-direction: column; }} .prop-thumb {{ width: 100%; height: 160px; min-width: unset; }} .prop-price {{ text-align: left; }} }}
+  * {box-sizing: border-box; margin: 0; padding: 0; }
+  body {font-family: 'Noto Sans TC', '微軟正黑體', sans-serif; background: #f7f3ed; color: #2c2c2c; }
+  .hero {display: flex; min-height: 200px; background: #f7f3ed; overflow: hidden; border-bottom: 3px solid #3d6b4f; }
+  .hero-left {flex: 1; padding: 36px 32px; display: flex; flex-direction: column; justify-content: center; gap: 14px; }
+  .hero-logo {width: 80px; }
+  .hero-tagline {font-size: 1.5rem; font-weight: 700; color: #2c2c2c; line-height: 1.6; }
+  .hero-sub {font-size: 0.88rem; color: #5a5a5a; line-height: 1.8; }
+  .hero-right {width: 320px; min-width: 220px; overflow: hidden; }
+  .hero-right img {width: 100%; height: 100%; object-fit: cover; object-position: top center; }
+  .agent-bar {background: #3d6b4f; color: #fff; padding: 12px 28px; display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+  .agent-bar .name {font-weight: 700; font-size: 1rem; }
+  .agent-bar .info {font-size: 0.82rem; opacity: 0.9; }
+  .agent-bar a {color: #b8dfc8; text-decoration: none; font-size: 0.82rem; }
+  .agent-bar a:hover {color: #fff; }
+  .buyer-section {max-width: 900px; margin: 28px auto; padding: 0 16px; }
+  .buyer-card {background: #fff; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.07); margin-bottom: 36px; overflow: hidden; border: 1px solid #e5ddd4; }
+  .buyer-header {background: #3d6b4f; color: #fff; padding: 18px 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+  .buyer-header h2 {font-size: 1.15rem; }
+  .buyer-header .match-count {background: #f7f3ed; color: #3d6b4f; font-weight: 700; font-size: 0.85rem; padding: 4px 14px; border-radius: 20px; }
+  .buyer-needs {background: #f0ebe3; padding: 14px 24px; display: flex; flex-wrap: wrap; gap: 8px; border-bottom: 1px solid #e5ddd4; }
+  .tag {background: #fff; border: 1px solid #b8cfbe; color: #3d6b4f; font-size: 0.8rem; padding: 4px 12px; border-radius: 20px; }
+  .tag.special {background: #fdf4e3; border-color: #e0c070; color: #7a5800; }
+  .prop-list {padding: 16px 24px; }
+  .prop-item {border: 1px solid #e5ddd4; border-radius: 8px; padding: 14px 16px; margin-bottom: 12px; display: flex; align-items: flex-start; gap: 12px; transition: box-shadow 0.2s; position: relative; background: #fff; }
+  .prop-item:hover {box-shadow: 0 4px 16px rgba(61,107,79,0.12); border-color: #3d6b4f; }
+  .prop-item:last-child {margin-bottom: 0; }
+  .prop-thumb {width: 120px; min-width: 120px; height: 88px; object-fit: cover; border-radius: 6px; background: #e8e2d8; }
+  .prop-info {flex: 1; }
+  .prop-title {font-weight: 700; font-size: 0.98rem; color: #3d6b4f; margin-bottom: 4px; }
+  .prop-addr {font-size: 0.82rem; color: #777; margin-bottom: 6px; }
+  .prop-meta {display: flex; flex-wrap: wrap; gap: 6px; }
+  .meta-tag {background: #f0ebe3; font-size: 0.75rem; padding: 2px 8px; border-radius: 4px; color: #5a5a5a; }
+  .meta-tag.highlight {background: #fdf4e3; color: #7a5800; }
+  .prop-price {text-align: right; min-width: 90px; }
+  .price-main {font-size: 1.1rem; font-weight: 700; color: #c0392b; }
+  .price-sub {font-size: 0.75rem; color: #aaa; margin-top: 2px; }
+  .btn-line {display: inline-block; margin-top: 8px; background: #06C755; color: #fff; font-size: 0.78rem; font-weight: 700; padding: 6px 14px; border-radius: 6px; text-decoration: none; letter-spacing: 0.5px; }
+  .btn-line:hover {background: #05a847; }
+  .prop-actions {display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+  .footer {background: #2c2c2c; color: #aaa; text-align: center; padding: 28px 16px; font-size: 0.82rem; margin-top: 20px; }
+  .footer strong {color: #fff; }
+  .footer a {color: #7ab68a; text-decoration: none; }
+  @media(max-width:640px) {.hero-right {display: none; } .prop-item {flex-direction: column; } .prop-thumb {width: 100%; height: 160px; min-width: unset; } .prop-price {text-align: left; } }
 </style>
 </head>
 <body>
@@ -163,13 +163,13 @@
 </div>
 
 <script>
-(function(){{
+(function(){
   var expiry=new Date('2026-07-02T23:59:59');
-  if(new Date()>expiry){{window.location.href='https://findingsweethomekh.com';return;}}
+  if(new Date()>expiry){window.location.href='https://findingsweethomekh.com';return;}
   document.querySelectorAll('.prop-item').forEach(function(item){{
-    var sn=(item.querySelector('div.price-sub')||{{}}).textContent||'';
-    var title=(item.querySelector('.prop-title')||{{}}).textContent||'';
-    var addr=(item.querySelector('.prop-addr')||{{}}).textContent||'';
+    var sn=(item.querySelector('div.price-sub')||{}).textContent||'';
+    var title=(item.querySelector('.prop-title')||{}).textContent||'';
+    var addr=(item.querySelector('.prop-addr')||{}).textContent||'';
     var priceDiv=item.querySelector('.prop-price');
     if(!title||!priceDiv)return;
     var msg=encodeURIComponent('您好，我想預約看房：【'+title.trim()+'】'+addr.trim()+'（物件編號：'+sn.trim()+'），請問方便安排嗎？');
@@ -179,8 +179,8 @@
     btn.target='_blank';
     btn.textContent='💬 LINE 預約看房';
     priceDiv.appendChild(btn);
-  }});
-}})();
+  });
+})();
 </script>
 </body>
 </html>
