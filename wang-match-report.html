@@ -345,7 +345,7 @@
 })();
 </script>
 <script>
-document.addEventListener('DOMContentLoaded', function(){
+(function(){
   document.querySelectorAll('.prop-item').forEach(function(item){
     var snEl = item.querySelector('div.price-sub');
     var sn = snEl ? snEl.textContent.trim() : null;
