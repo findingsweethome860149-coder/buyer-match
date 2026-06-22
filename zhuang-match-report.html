@@ -166,7 +166,7 @@
 (function(){
   var expiry=new Date('2026-07-02T23:59:59');
   if(new Date()>expiry){window.location.href='https://findingsweethomekh.com';return;}
-  document.querySelectorAll('.prop-item').forEach(function(item){{
+  document.querySelectorAll('.prop-item').forEach(function(item){
     var sn=(item.querySelector('div.price-sub')||{}).textContent||'';
     var title=(item.querySelector('.prop-title')||{}).textContent||'';
     var addr=(item.querySelector('.prop-addr')||{}).textContent||'';
