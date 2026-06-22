@@ -349,14 +349,35 @@ document.addEventListener('DOMContentLoaded', function(){
   document.querySelectorAll('.prop-item').forEach(function(item){
     var snEl = item.querySelector('div.price-sub');
     var sn = snEl ? snEl.textContent.trim() : null;
-    if(sn && typeof imgMap !== 'undefined' && window.imgMap[sn]){
+    var title = item.querySelector('.prop-title') ? item.querySelector('.prop-title').textContent.trim() : '';
+    var addr = item.querySelector('.prop-addr') ? item.querySelector('.prop-addr').textContent.trim() : '';
+
+    // 封面照片
+    if(sn && window.imgMap && window.imgMap[sn]){
       var img = document.createElement('img');
       img.className = 'prop-thumb';
       img.src = window.imgMap[sn];
       img.alt = '';
       item.insertBefore(img, item.firstChild);
     }
+
+    // LINE 預約按鈕（含物件編號）
+    if(title){
+      var snText = sn ? '（物件編號：' + sn + '）' : '';
+      var msg = encodeURIComponent('您好，我想預約看房：【' + title + '】' + addr + snText + '，請問方便安排嗎？');
+      var lineUrl = 'https://line.me/R/oaMessage/@898jvoyx/?' + msg;
+      var priceDiv = item.querySelector('.prop-price');
+      if(priceDiv){
+        var btn = document.createElement('a');
+        btn.className = 'btn-line';
+        btn.href = lineUrl;
+        btn.target = '_blank';
+        btn.textContent = '💬 LINE 預約看房';
+        priceDiv.appendChild(btn);
+      }
+    }
   });
+});
 });
 </script>
 </body>
