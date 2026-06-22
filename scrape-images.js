@@ -42,6 +42,7 @@ const TARGET_URL = 'https://www.hbhousing.com.tw/franchise/broker/C306A008/broke
         const priceEl = card.querySelector('[class*="price"]');
         const addrEl = card.querySelector('[class*="addr"], [class*="address"]');
         const snEl = card.querySelector('[class*="sn"], [class*="no"], [data-sn]');
+        const linkEl = card.querySelector('a[href]');
 
         items.push({
           sn: snEl ? (snEl.textContent.trim() || snEl.dataset.sn) : '',
@@ -49,14 +50,19 @@ const TARGET_URL = 'https://www.hbhousing.com.tw/franchise/broker/C306A008/broke
           price: priceEl ? priceEl.textContent.trim() : '',
           addr: addrEl ? addrEl.textContent.trim() : '',
           img: img ? (img.src || img.dataset.src || img.dataset.lazySrc) : '',
+          url: linkEl ? new URL(linkEl.getAttribute('href'), 'https://www.hbhousing.com.tw').href : '',
         });
       });
     } else {
-      // fallback：直接抓所有圖片
+      // fallback：直接抓所有圖片與連結
       document.querySelectorAll('img').forEach(img => {
         const src = img.src || img.dataset.src || img.dataset.lazySrc || '';
         if (src && !src.includes('logo') && !src.includes('icon') && src.startsWith('http')) {
-          items.push({ img: src, title: img.alt || '', sn: '', price: '', addr: '' });
+          const linkEl = img.closest('a') || img.parentElement?.closest('a');
+          const url = linkEl
+            ? new URL(linkEl.getAttribute('href'), 'https://www.hbhousing.com.tw').href
+            : '';
+          items.push({ img: src, title: img.alt || '', sn: '', price: '', addr: '', url });
         }
       });
     }
@@ -78,6 +84,7 @@ const TARGET_URL = 'https://www.hbhousing.com.tw/franchise/broker/C306A008/broke
     console.log(`    地址：${item.addr || '-'}`);
     console.log(`    價格：${item.price || '-'}`);
     console.log(`    圖片：${item.img || '(無圖)'}`);
+    console.log(`    網址：${item.url || '(無連結)'}`);
     console.log('');
   });
 
