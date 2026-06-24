@@ -137,6 +137,128 @@ body {
   border-radius: 20px;
 }
 
+/* ── 預約系統 ── */
+.booking-section {
+  margin: 0 20px 20px;
+  border: 1.5px solid #c8dfc8;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.booking-header {
+  background: #3d6b3a;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.booking-header-title {
+  color: #fff;
+  font-size: 15px;
+  font-weight: bold;
+  flex: 1;
+}
+.booking-header-sub {
+  color: rgba(255,255,255,.75);
+  font-size: 11px;
+}
+.booking-body { padding: 14px 14px 16px; }
+.booking-label {
+  font-size: 12px;
+  color: #5a7a5a;
+  margin-bottom: 8px;
+  font-weight: bold;
+}
+.date-chips {
+  display: flex;
+  gap: 7px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  margin-bottom: 14px;
+  scrollbar-width: none;
+}
+.date-chips::-webkit-scrollbar { display: none; }
+.date-chip {
+  flex-shrink: 0;
+  background: #f2f7f2;
+  border: 1.5px solid #c8dfc8;
+  border-radius: 8px;
+  padding: 7px 10px;
+  text-align: center;
+  cursor: pointer;
+  transition: all .15s;
+  min-width: 50px;
+}
+.date-chip.active {
+  background: #3d6b3a;
+  border-color: #3d6b3a;
+  color: #fff;
+}
+.date-chip-day { font-size: 11px; color: #999; }
+.date-chip.active .date-chip-day { color: rgba(255,255,255,.8); }
+.date-chip-date { font-size: 16px; font-weight: bold; color: #1e2b10; margin: 2px 0; }
+.date-chip.active .date-chip-date { color: #fff; }
+.date-chip-week { font-size: 10px; color: #7fa882; }
+.date-chip.active .date-chip-week { color: rgba(255,255,255,.8); }
+
+.time-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 7px;
+  margin-bottom: 14px;
+}
+.time-chip {
+  background: #f2f7f2;
+  border: 1.5px solid #c8dfc8;
+  border-radius: 7px;
+  padding: 8px 4px;
+  text-align: center;
+  font-size: 13px;
+  color: #1e2b10;
+  cursor: pointer;
+  transition: all .15s;
+}
+.time-chip.active {
+  background: #7fa882;
+  border-color: #7fa882;
+  color: #fff;
+  font-weight: bold;
+}
+.time-chip.unavailable {
+  background: #f5f5f5;
+  border-color: #e0e0e0;
+  color: #ccc;
+  cursor: not-allowed;
+}
+.booking-confirm {
+  width: 100%;
+  background: #06C755;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 13px;
+  font-size: 15px;
+  font-weight: bold;
+  font-family: "微軟正黑體", sans-serif;
+  cursor: pointer;
+  transition: opacity .15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.booking-confirm:hover { opacity: .88; }
+.booking-confirm:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  opacity: 1;
+}
+.booking-note {
+  font-size: 11px;
+  color: #999;
+  text-align: center;
+  margin-top: 8px;
+}
+
 /* ── 主要 CTA 按鈕 ── */
 .cta-group {
   padding: 0 20px 20px;
@@ -299,6 +421,27 @@ body {
     <span class="tag">🎯 精準定價</span>
   </div>
 
+  <!-- 預約系統 -->
+  <div class="booking-section">
+    <div class="booking-header">
+      <span style="font-size:20px">📅</span>
+      <div style="flex:1">
+        <div class="booking-header-title">預約免費諮詢</div>
+        <div class="booking-header-sub">選好時段，透過 LINE 一鍵確認</div>
+      </div>
+    </div>
+    <div class="booking-body">
+      <div class="booking-label">選擇日期</div>
+      <div class="date-chips" id="dateChips"></div>
+      <div class="booking-label">選擇時段</div>
+      <div class="time-grid" id="timeGrid"></div>
+      <button class="booking-confirm" id="bookBtn" disabled onclick="sendBooking()">
+        💬 傳送預約訊息到 LINE
+      </button>
+      <div class="booking-note">確認後將開啟 LINE，預約訊息自動帶入，家綸會盡快回覆</div>
+    </div>
+  </div>
+
   <!-- 主要 CTA -->
   <div class="cta-group">
     <a class="btn btn-book" href="https://line.me/ti/p/~@898jvoyx" target="_blank">
@@ -371,5 +514,84 @@ body {
   <div class="footer">© 愛家的綸｜張家綸 不動產顧問</div>
 
 </div>
+<script>
+const WEEK = ['日','一','二','三','四','五','六'];
+const TIMES = ['10:00','11:00','13:00','14:00','15:00','16:00','19:00','20:00'];
+const UNAVAILABLE = [];  // 可在此標記不可預約時段
+
+let selDate = null, selTime = null;
+
+function buildDates() {
+  const container = document.getElementById('dateChips');
+  const today = new Date();
+  for (let i = 1; i <= 7; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() + i);
+    const dow = d.getDay();
+    if (dow === 0) continue;  // 週日跳過
+    const chip = document.createElement('div');
+    chip.className = 'date-chip';
+    chip.innerHTML = `
+      <div class="date-chip-day">${d.getMonth()+1}月</div>
+      <div class="date-chip-date">${d.getDate()}</div>
+      <div class="date-chip-week">週${WEEK[dow]}</div>`;
+    chip.dataset.date = `${d.getMonth()+1}/${d.getDate()}（${WEEK[dow]}）`;
+    chip.onclick = () => selectDate(chip);
+    container.appendChild(chip);
+  }
+}
+
+function buildTimes() {
+  const grid = document.getElementById('timeGrid');
+  TIMES.forEach(t => {
+    const chip = document.createElement('div');
+    chip.className = 'time-chip' + (UNAVAILABLE.includes(t) ? ' unavailable' : '');
+    chip.textContent = t;
+    chip.dataset.time = t;
+    if (!UNAVAILABLE.includes(t)) chip.onclick = () => selectTime(chip);
+    grid.appendChild(chip);
+  });
+}
+
+function selectDate(el) {
+  document.querySelectorAll('.date-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  selDate = el.dataset.date;
+  updateBtn();
+}
+
+function selectTime(el) {
+  document.querySelectorAll('.time-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  selTime = el.dataset.time;
+  updateBtn();
+}
+
+function updateBtn() {
+  const btn = document.getElementById('bookBtn');
+  btn.disabled = !(selDate && selTime);
+  if (selDate && selTime) {
+    btn.innerHTML = `💬 預約 ${selDate} ${selTime}`;
+  } else {
+    btn.innerHTML = '💬 傳送預約訊息到 LINE';
+  }
+}
+
+function sendBooking() {
+  const msg = `您好，我是從行動名片看到家綸的服務，想預約 ${selDate} ${selTime} 的免費房屋諮詢，請問方便嗎？`;
+  const url = `https://line.me/ti/p/~@898jvoyx`;
+  // 複製訊息到剪貼簿，再開啟 LINE
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(msg).catch(() => {});
+  }
+  const btn = document.getElementById('bookBtn');
+  btn.innerHTML = '✅ 訊息已複製，正在開啟 LINE…';
+  setTimeout(() => { window.open(url, '_blank'); }, 400);
+  setTimeout(() => updateBtn(), 2000);
+}
+
+buildDates();
+buildTimes();
+</script>
 </body>
 </html>
