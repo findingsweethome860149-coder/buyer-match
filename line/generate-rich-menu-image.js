@@ -46,7 +46,7 @@ const HTML = `<!DOCTYPE html>
   }
   .label {
     color: #F8F6F0;
-    font-size: 36px;
+    font-size: 60px;
     font-weight: 700;
     letter-spacing: 0.08em;
     text-shadow: 0 1px 4px rgba(0,0,0,0.5);
