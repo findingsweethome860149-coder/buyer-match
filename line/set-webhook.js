@@ -4,7 +4,7 @@ const https = require('https');
 const TOKEN = 'TlJmZd/AnIKgKS7ZRUm+k5LGH/fTj6oAo13ETUr5o3O48Xe1q2rz4GpnNqXNwUqpFDGRGC5DZQD5Ss8EaTPyTbT3MC05Emsc7bKJOXfM+skBiVbpZroZJYUrNhxz+ymLW8hvNdA+J0irLnfrNdU0fwdB04t89/1O/w1cDnyilFU=';
 const WEBHOOK_URL = 'https://buyer-match-production.up.railway.app/webhook';
 
-const body = JSON.stringify({ webhook_endpoint: WEBHOOK_URL });
+const body = JSON.stringify({ endpoint: WEBHOOK_URL });
 
 const req = https.request({
   hostname: 'api.line.me',
