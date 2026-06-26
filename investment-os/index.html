@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>AI Investment OS Lite</title>
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<!-- ── ONBOARDING ── -->
+<div id="onboarding">
+  <div class="onboard-dots">
+    <div class="onboard-dot active" id="od0"></div>
+    <div class="onboard-dot" id="od1"></div>
+    <div class="onboard-dot" id="od2"></div>
+  </div>
+
+  <div class="onboard-step active" id="os0">
+    <div class="onboard-num">歡迎使用</div>
+    <div class="onboard-title">每天 3 分鐘<br>建立投資紀律</div>
+    <div class="onboard-desc">
+      AI Investment OS Lite 是一位陪跑教練。<br>
+      不報明牌，不替你下決定。<br>
+      只陪你建立屬於自己的投資紀律，<br>
+      慢慢累積第一桶金。
+    </div>
+    <button class="btn btn-primary" onclick="App.nextOnboard()">開始設定</button>
+  </div>
+
+  <div class="onboard-step" id="os1">
+    <div class="onboard-num">Step 1 / 2</div>
+    <div class="onboard-title">設定投資目標</div>
+    <div class="onboard-desc">告訴我你的投資計畫，我才能給你最適合的提醒。</div>
+    <div class="form-group">
+      <label class="form-label">每月可投入金額（元）</label>
+      <input class="form-input" id="ob_budget" type="number" placeholder="例：10000" min="1">
+    </div>
+    <div class="form-group">
+      <label class="form-label">每月定期投入提醒日</label>
+      <select class="form-input" id="ob_day">
+        <option value="1">每月 1 日</option>
+        <option value="5" selected>每月 5 日</option>
+        <option value="10">每月 10 日</option>
+        <option value="15">每月 15 日</option>
+        <option value="20">每月 20 日</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">預設手續費率（%）</label>
+      <input class="form-input" id="ob_fee" type="number" placeholder="0.1425" step="0.0001" value="0.1425" min="0">
+      <div class="form-hint">台灣券商一般 0.1425%，折扣後約 0.07%</div>
+    </div>
+    <button class="btn btn-primary" onclick="App.nextOnboard()">下一步</button>
+  </div>
+
+  <div class="onboard-step" id="os2">
+    <div class="onboard-num">Step 2 / 2</div>
+    <div class="onboard-title">準備好了</div>
+    <div class="onboard-desc">
+      接下來你可以：<br><br>
+      ① 加入想追蹤的股票到觀察清單<br>
+      ② 入金並新增第一筆買入交易<br>
+      ③ 每天查看 Dashboard<br><br>
+      記住：每一筆交易都值得記錄原因。<br>
+      這是建立投資紀律最重要的一步。
+    </div>
+    <button class="btn btn-primary" onclick="App.finishOnboard()">開始使用</button>
+  </div>
+</div>
+
+<!-- ── HEADER ── -->
+<div class="header">
+  <div>
+    <h1><span class="logo-dot"></span>Investment OS</h1>
+    <div class="date" id="headerDate"></div>
+  </div>
+  <span class="ai-badge">✦ AI</span>
+</div>
+
+<!-- ── PAGES ── -->
+<div id="page-home" class="page active">
+  <div id="dailyBrief"></div>
+  <div id="portfolioHome"></div>
+  <div id="watchlistHome"></div>
+  <div id="remindersHome"></div>
+</div>
+
+<div id="page-portfolio" class="page">
+  <div id="portfolioView"></div>
+</div>
+
+<div id="page-watchlist" class="page">
+  <div id="watchlistView"></div>
+</div>
+
+<div id="page-history" class="page">
+  <div id="historyView"></div>
+</div>
+
+<div id="page-settings" class="page">
+  <div id="settingsView"></div>
+</div>
+
+<!-- ── FAB ── -->
+<button class="fab" id="fabBtn" title="新增">＋</button>
+
+<!-- ── BOTTOM NAV ── -->
+<nav class="bottom-nav">
+  <div class="nav-item active" data-page="home">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+    今日
+  </div>
+  <div class="nav-item" data-page="portfolio">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>
+    持倉
+  </div>
+  <div class="nav-item" data-page="watchlist">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+    觀察
+  </div>
+  <div class="nav-item" data-page="history">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    紀錄
+  </div>
+  <div class="nav-item" data-page="settings">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+    設定
+  </div>
+</nav>
+
+<!-- ── MODAL: TRANSACTION ── -->
+<div class="modal-overlay" id="modalTx">
+  <div class="modal">
+    <div class="modal-title">
+      <span id="modalTxTitle">新增交易</span>
+      <button class="modal-close" onclick="closeModal('modalTx')">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">交易類型</label>
+      <select class="form-input" id="txType">
+        <option value="buy">買入</option>
+        <option value="sell">賣出</option>
+        <option value="deposit">入金</option>
+        <option value="withdraw">出金</option>
+      </select>
+    </div>
+    <div id="txStockFields">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">股票代號</label>
+          <input class="form-input" id="txSymbol" placeholder="例：0050" maxlength="10">
+        </div>
+        <div class="form-group">
+          <label class="form-label">股票名稱</label>
+          <input class="form-input" id="txName" placeholder="例：台灣50">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">股數（支援零股）</label>
+          <input class="form-input" id="txShares" type="number" placeholder="例：100" min="0.001" step="any">
+        </div>
+        <div class="form-group">
+          <label class="form-label">成交價格（元）</label>
+          <input class="form-input" id="txPrice" type="number" placeholder="例：185" step="0.01" min="0">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">手續費（元）</label>
+        <input class="form-input" id="txFee" type="number" placeholder="自動計算，可手動修改" step="1" min="0">
+        <div class="form-hint">買入手續費；賣出含 0.3% 證交稅</div>
+      </div>
+    </div>
+    <div id="txCashFields" style="display:none">
+      <div class="form-group">
+        <label class="form-label">金額（元）</label>
+        <input class="form-input" id="txCashAmt" type="number" placeholder="例：50000" min="1">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">日期</label>
+      <input class="form-input" id="txDate" type="date">
+    </div>
+    <div class="form-group">
+      <label class="form-label">交易原因（選填）</label>
+      <input class="form-input" id="txReason" placeholder="例：定期定額、目標價到了、長期持有計畫">
+      <div class="form-hint">記錄理由有助於建立投資紀律，建議填寫。</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">備註（選填）</label>
+      <input class="form-input" id="txNote" placeholder="其他補充說明">
+    </div>
+    <button class="btn btn-primary" onclick="App.submitTransaction()">確認新增</button>
+  </div>
+</div>
+
+<!-- ── MODAL: WATCHLIST ── -->
+<div class="modal-overlay" id="modalWatch">
+  <div class="modal">
+    <div class="modal-title">
+      <span>加入觀察清單</span>
+      <button class="modal-close" onclick="closeModal('modalWatch')">✕</button>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">股票代號</label>
+        <input class="form-input" id="watchSymbol" placeholder="例：2330" maxlength="10">
+      </div>
+      <div class="form-group">
+        <label class="form-label">股票名稱</label>
+        <input class="form-input" id="watchName" placeholder="例：台積電">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">現價（元）</label>
+        <input class="form-input" id="watchCurrent" type="number" placeholder="例：920" step="0.01" min="0">
+      </div>
+      <div class="form-group">
+        <label class="form-label">目標買入價（元）</label>
+        <input class="form-input" id="watchTarget" type="number" placeholder="例：850" step="0.01" min="0">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">加入觀察的理由（選填）</label>
+      <input class="form-input" id="watchNote" placeholder="例：等待回調再買、追蹤基本面">
+    </div>
+    <button class="btn btn-primary" onclick="App.addWatch()">加入觀察</button>
+  </div>
+</div>
+
+<!-- ── MODAL: UPDATE PRICE ── -->
+<div class="modal-overlay" id="modalUpdatePrice">
+  <div class="modal">
+    <div class="modal-title">
+      <span id="updatePriceTitle">更新現價</span>
+      <button class="modal-close" onclick="closeModal('modalUpdatePrice')">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">現在市價（元）</label>
+      <input class="form-input" id="updatePriceValue" type="number" step="0.01" min="0">
+    </div>
+    <input type="hidden" id="updatePriceId">
+    <input type="hidden" id="updatePriceCtx">
+    <button class="btn btn-primary" onclick="App.confirmUpdatePrice()">確認更新</button>
+  </div>
+</div>
+
+<!-- ── TOAST ── -->
+<div class="toast" id="toast"></div>
+
+<!-- ── SCRIPTS (load order matters) ── -->
+<script src="js/db.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/modules/transaction.js"></script>
+<script src="js/modules/portfolio.js"></script>
+<script src="js/modules/watchlist.js"></script>
+<script src="js/modules/ai.js"></script>
+<script src="js/modules/notification.js"></script>
+<script src="js/modules/security.js"></script>
+<script src="js/modules/dashboard.js"></script>
+<script src="js/app.js"></script>
+
+<script>
+  // Global modal helpers (called from HTML onclick)
+  function openModal(id) {
+    document.getElementById(id).classList.add('open');
+    if (id === 'modalTx') {
+      document.getElementById('txDate').value = Utils.today();
+      // Trigger type change to set initial state
+      document.getElementById('txType').dispatchEvent(new Event('change'));
+    }
+  }
+  function closeModal(id) {
+    document.getElementById(id).classList.remove('open');
+  }
+
+  // Boot
+  App.init();
+</script>
+</body>
+</html>
