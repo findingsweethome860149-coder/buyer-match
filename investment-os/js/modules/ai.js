@@ -78,5 +78,58 @@ const AIModule = (() => {
     return { items, actionCount };
   }
 
-  return { analyze };
+  /**
+   * Score a watchlist stock from 0–100.
+   * Higher = closer to or below target price (more attractive entry).
+   * 100 = at or below target. 50 = no target set (neutral). 0 = far above target.
+   */
+  function scoreStock(watchItem) {
+    const { currentPrice, targetPrice } = watchItem;
+    if (!currentPrice || !targetPrice) return 50;
+    if (currentPrice <= targetPrice) return 100;
+    const ratio = currentPrice / targetPrice;
+    if (ratio >= 1.3) return 0;
+    // Linear from 100 (at target) to 0 (30% above target)
+    return Math.max(0, Math.round(100 - (ratio - 1) / 0.3 * 100));
+  }
+
+  /**
+   * Score label and colour class for display.
+   */
+  function scoreLabel(score) {
+    if (score >= 80) return { label: '吸引', cls: 'score-high' };
+    if (score >= 50) return { label: '觀察', cls: 'score-mid' };
+    return { label: '偏高', cls: 'score-low' };
+  }
+
+  /**
+   * Generate a brief stock analysis summary for the detail view.
+   * Returns an array of analysis points.
+   */
+  function analyzeStock(watchItem, holdingItem) {
+    const { symbol, name, currentPrice, targetPrice } = watchItem;
+    const points = [];
+
+    if (targetPrice && currentPrice) {
+      const diff = ((currentPrice / targetPrice) - 1) * 100;
+      if (currentPrice <= targetPrice) {
+        points.push({ icon: '🟢', text: `現價 $${Utils.fmt(currentPrice, 2)} 已達目標買入價 $${Utils.fmt(targetPrice, 2)}，具有投資吸引力。` });
+      } else {
+        points.push({ icon: '🟡', text: `現價比目標買入價高 ${Utils.fmt(diff, 1)}%，尚未到達理想買入區間。` });
+      }
+    } else if (!targetPrice) {
+      points.push({ icon: '⚪', text: '尚未設定目標買入價，建議先設定再追蹤。' });
+    }
+
+    if (holdingItem) {
+      const pnl    = (currentPrice - holdingItem.avgCost) * holdingItem.shares;
+      const pnlPct = (currentPrice / holdingItem.avgCost - 1) * 100;
+      points.push({ icon: pnl >= 0 ? '📈' : '📉', text: `目前持有 ${Utils.fmt(holdingItem.shares)} 股，均價 $${Utils.fmt(holdingItem.avgCost, 2)}，未實現損益 ${Utils.pnlSign(pnl)}$${Utils.fmt(Math.abs(pnl))} (${Utils.pnlSign(pnlPct)}${Utils.fmt(pnlPct, 2)}%)。` });
+    }
+
+    points.push({ icon: '💬', text: 'AI 分析僅供參考，不構成投資建議。最終決策由你決定。' });
+    return points;
+  }
+
+  return { analyze, scoreStock, scoreLabel, analyzeStock };
 })();

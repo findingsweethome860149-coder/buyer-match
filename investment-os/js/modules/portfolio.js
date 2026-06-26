@@ -66,7 +66,26 @@ const PortfolioModule = (() => {
   function updateCurrentPrice(symbol, price) {
     const holdings = getHoldings();
     const h = holdings.find(x => x.symbol === symbol);
-    if (h) { h.currentPrice = price; saveHoldings(holdings); }
+    if (h) {
+      h.previousPrice = h.currentPrice || h.avgCost;
+      h.currentPrice  = price;
+      h.priceUpdatedAt = Utils.today();
+      saveHoldings(holdings);
+    }
+  }
+
+  /**
+   * Today's P&L = (currentPrice - previousPrice) * shares
+   * Only meaningful if price was updated today.
+   */
+  function getTodayPnL() {
+    const today = Utils.today();
+    return getHoldings().reduce((s, h) => {
+      if (h.priceUpdatedAt === today && h.previousPrice) {
+        return s + (h.currentPrice - h.previousPrice) * h.shares;
+      }
+      return s;
+    }, 0);
   }
 
   // ── Computed values ──
@@ -107,6 +126,7 @@ const PortfolioModule = (() => {
     updateCurrentPrice,
     getMarketValue,
     getUnrealizedPnL,
+    getTodayPnL,
     getCashBalance,
     getRealizedPnL,
     getTotalAssets,
