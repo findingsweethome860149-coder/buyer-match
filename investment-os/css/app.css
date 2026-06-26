@@ -264,7 +264,81 @@ select.form-input { cursor: pointer; }
   font-size: 11px; color: #fff; margin-top: 10px;
 }
 
+/* ── Goal selection grid ── */
+.goal-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.goal-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 10px;
+  background: var(--surface2);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color .2s, background .2s;
+}
+.goal-btn:active { opacity: .8; }
+.goal-btn.selected {
+  border-color: var(--accent);
+  background: rgba(79,110,247,.12);
+  color: var(--accent);
+  font-weight: 700;
+}
+.goal-icon { font-size: 26px; }
+
+/* ── Asset section on Home ── */
+.asset-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+.asset-row:last-child { border-bottom: none; }
+.asset-label { font-size: 13px; color: var(--muted); }
+.asset-value { font-size: 15px; font-weight: 600; }
+.asset-total { font-size: 22px; font-weight: 800; }
+
+/* ── Activity feed ── */
+.activity-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.activity-item:last-child { border-bottom: none; }
+.activity-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+.activity-dot-buy     { background: var(--accent); }
+.activity-dot-sell    { background: var(--red); }
+.activity-dot-deposit { background: var(--green); }
+.activity-dot-withdraw{ background: var(--yellow); }
+.activity-text { flex: 1; color: var(--muted); line-height: 1.4; }
+.activity-text strong { color: var(--text); }
+.activity-date { font-size: 11px; color: var(--muted); flex-shrink: 0; }
+
+/* ── Goal tag ── */
+.goal-tag {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: rgba(124,92,252,.15); border: 1px solid rgba(124,92,252,.3);
+  border-radius: 20px; padding: 3px 10px;
+  font-size: 12px; color: var(--accent2);
+}
+
 @media (max-width: 380px) {
   .brief-title { font-size: 17px; }
   .total-value { font-size: 20px; }
+  .asset-total { font-size: 18px; }
 }

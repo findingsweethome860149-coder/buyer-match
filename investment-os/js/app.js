@@ -9,6 +9,7 @@
  *     → NotificationModule.toast()
  *
  * App coordinates modules. Modules do NOT call each other directly.
+ * All user-facing operations are wrapped in error handling.
  */
 const App = (() => {
   let _page = 'home';
@@ -16,7 +17,12 @@ const App = (() => {
   // ─── Settings ──────────────────────────────────────────────────────────────
 
   function getSettings() {
-    return DB.get('settings', { monthlyBudget: 10000, reminderDay: 5, defaultFeeRate: 0.1425 });
+    return DB.get('settings', {
+      monthlyBudget: 10000,
+      reminderDay: 5,
+      defaultFeeRate: 0.1425,
+      investmentGoal: '',
+    });
   }
 
   function saveSettings(s) {
@@ -29,7 +35,16 @@ const App = (() => {
     _page = page;
     document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.page === page));
     document.querySelectorAll('.page').forEach(p => p.classList.toggle('active', p.id === 'page-' + page));
-    _renderCurrentPage();
+    _safeRender();
+  }
+
+  function _safeRender() {
+    try {
+      _renderCurrentPage();
+    } catch (err) {
+      console.error('Render error:', err);
+      NotificationModule.toast('畫面更新失敗，請稍後再試。');
+    }
   }
 
   function _renderCurrentPage() {
@@ -39,21 +54,27 @@ const App = (() => {
     const settings = getSettings();
 
     if (_page === 'home') {
-      const aiResult = AIModule.analyze({ holdings, watchlist, settings, transactions: txs });
+      const aiResult   = AIModule.analyze({ holdings, watchlist, settings, transactions: txs });
+      const cash       = PortfolioModule.getCashBalance(txs);
+      const totalAssets = PortfolioModule.getTotalAssets(txs);
+      const recentTxs  = [...txs].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5);
       DashboardModule.renderHome({
         aiResult,
         holdings,
-        watchlistHits: WatchlistModule.getTargetHits(),
+        watchlist,
+        cash,
+        totalAssets,
         settings,
+        recentTxs,
       });
     } else if (_page === 'portfolio') {
       DashboardModule.renderPortfolio({
         holdings,
-        cash:         PortfolioModule.getCashBalance(txs),
-        unrealized:   PortfolioModule.getUnrealizedPnL(),
-        unrealPct:    _unrealPct(holdings),
-        realized:     PortfolioModule.getRealizedPnL(txs),
-        totalAssets:  PortfolioModule.getTotalAssets(txs),
+        cash:        PortfolioModule.getCashBalance(txs),
+        unrealized:  PortfolioModule.getUnrealizedPnL(),
+        unrealPct:   _unrealPct(holdings),
+        realized:    PortfolioModule.getRealizedPnL(txs),
+        totalAssets: PortfolioModule.getTotalAssets(txs),
       });
     } else if (_page === 'watchlist') {
       DashboardModule.renderWatchlist({ watchlist });
@@ -73,97 +94,120 @@ const App = (() => {
   // ─── Transaction actions ───────────────────────────────────────────────────
 
   function submitTransaction() {
-    const type = document.getElementById('txType').value;
-    const date = document.getElementById('txDate').value;
-    if (!date) { NotificationModule.toast('請選擇日期'); return; }
+    try {
+      const type = document.getElementById('txType').value;
+      const date = document.getElementById('txDate').value;
+      if (!date) { NotificationModule.toast('請選擇日期'); return; }
 
-    if (type === 'deposit' || type === 'withdraw') {
-      const cashAmt = parseFloat(document.getElementById('txCashAmt').value);
-      if (!cashAmt || cashAmt <= 0) { NotificationModule.toast('請輸入金額'); return; }
-      const tx = {
-        type, date, cashAmt,
-        reason: document.getElementById('txReason').value.trim(),
-        note:   document.getElementById('txNote').value.trim(),
-      };
+      if (type === 'deposit' || type === 'withdraw') {
+        const cashAmt = parseFloat(document.getElementById('txCashAmt').value);
+        if (!cashAmt || cashAmt <= 0) { NotificationModule.toast('請輸入金額'); return; }
+        const tx = {
+          type, date, cashAmt,
+          reason: document.getElementById('txReason').value.trim(),
+          note:   document.getElementById('txNote').value.trim(),
+        };
+        TransactionModule.add(tx);
+        SecurityModule.log(type, `$${cashAmt}`);
+        _clearTxForm();
+        closeModal('modalTx');
+        NotificationModule.toast(`${type === 'deposit' ? '入金' : '出金'} $${Utils.fmt(cashAmt)} 已記錄`);
+        _safeRender();
+        return;
+      }
+
+      const symbol = document.getElementById('txSymbol').value.trim().toUpperCase();
+      const name   = document.getElementById('txName').value.trim();
+      const shares = parseFloat(document.getElementById('txShares').value);
+      const price  = parseFloat(document.getElementById('txPrice').value);
+      const fee    = parseFloat(document.getElementById('txFee').value) || 0;
+      const reason = document.getElementById('txReason').value.trim();
+      const note   = document.getElementById('txNote').value.trim();
+
+      if (!symbol || !name) { NotificationModule.toast('請填寫股票代號與名稱'); return; }
+      if (!shares || shares <= 0) { NotificationModule.toast('請填寫股數'); return; }
+      if (!price  || price  <= 0) { NotificationModule.toast('請填寫成交價格'); return; }
+
+      // Calculate realized P&L for sells
+      let realizedPnL;
+      if (type === 'sell') {
+        const h = PortfolioModule.getHoldings().find(x => x.symbol === symbol);
+        if (h) realizedPnL = (price - h.avgCost) * shares - fee;
+      }
+
+      const tx = { type, date, symbol, name, shares, price, fee, reason, note };
+      if (realizedPnL !== undefined) tx.realizedPnL = realizedPnL;
       TransactionModule.add(tx);
-      SecurityModule.log(type, `$${cashAmt}`);
-      _clearTxForm(); closeModal('modalTx');
-      NotificationModule.toast(`${type === 'deposit' ? '入金' : '出金'} $${Utils.fmt(cashAmt)} 已記錄`);
-      _renderCurrentPage();
-      return;
+
+      // Portfolio recalculates from full transaction history (not mutated directly)
+      PortfolioModule.recalculate(TransactionModule.getAll());
+
+      SecurityModule.log(type, `${symbol} ${shares}股 @${price}`);
+      _clearTxForm();
+      closeModal('modalTx');
+      NotificationModule.toast(`${type === 'buy' ? '買入' : '賣出'} ${symbol} ${Utils.fmt(shares)} 股已記錄`);
+      _safeRender();
+    } catch (err) {
+      console.error('submitTransaction error:', err);
+      NotificationModule.toast('新增交易失敗，請稍後再試。資料未遺失。');
     }
-
-    const symbol = document.getElementById('txSymbol').value.trim().toUpperCase();
-    const name   = document.getElementById('txName').value.trim();
-    const shares = parseFloat(document.getElementById('txShares').value);
-    const price  = parseFloat(document.getElementById('txPrice').value);
-    const fee    = parseFloat(document.getElementById('txFee').value) || 0;
-    const reason = document.getElementById('txReason').value.trim();
-    const note   = document.getElementById('txNote').value.trim();
-
-    if (!symbol || !name) { NotificationModule.toast('請填寫股票代號與名稱'); return; }
-    if (!shares || shares <= 0) { NotificationModule.toast('請填寫股數'); return; }
-    if (!price  || price  <= 0) { NotificationModule.toast('請填寫成交價格'); return; }
-
-    // Calculate realized P&L for sells
-    let realizedPnL;
-    if (type === 'sell') {
-      const holdings = PortfolioModule.getHoldings();
-      const h = holdings.find(x => x.symbol === symbol);
-      if (h) realizedPnL = (price - h.avgCost) * shares - fee;
-    }
-
-    const tx = { type, date, symbol, name, shares, price, fee, reason, note };
-    if (realizedPnL !== undefined) tx.realizedPnL = realizedPnL;
-    TransactionModule.add(tx);
-
-    // Portfolio recalculates from full transaction history
-    PortfolioModule.recalculate(TransactionModule.getAll());
-
-    SecurityModule.log(type, `${symbol} ${shares}股 @${price}`);
-    _clearTxForm(); closeModal('modalTx');
-    NotificationModule.toast(`${type === 'buy' ? '買入' : '賣出'} ${symbol} ${Utils.fmt(shares)} 股已記錄`);
-    _renderCurrentPage();
   }
 
   function deleteTx(id) {
     if (!confirm('確定刪除此筆紀錄？')) return;
-    TransactionModule.remove(id);
-    PortfolioModule.recalculate(TransactionModule.getAll());
-    SecurityModule.log('deleteTx', id);
-    NotificationModule.toast('紀錄已刪除');
-    _renderCurrentPage();
+    try {
+      TransactionModule.remove(id);
+      PortfolioModule.recalculate(TransactionModule.getAll());
+      SecurityModule.log('deleteTx', id);
+      NotificationModule.toast('紀錄已刪除');
+      _safeRender();
+    } catch (err) {
+      console.error('deleteTx error:', err);
+      NotificationModule.toast('刪除失敗，請稍後再試。');
+    }
   }
 
   // ─── Watchlist actions ────────────────────────────────────────────────────
 
   function addWatch() {
-    const symbol  = document.getElementById('watchSymbol').value.trim().toUpperCase();
-    const name    = document.getElementById('watchName').value.trim();
-    const current = parseFloat(document.getElementById('watchCurrent').value) || 0;
-    const target  = parseFloat(document.getElementById('watchTarget').value) || 0;
-    const note    = document.getElementById('watchNote').value.trim();
+    try {
+      const symbol  = document.getElementById('watchSymbol').value.trim().toUpperCase();
+      const name    = document.getElementById('watchName').value.trim();
+      const current = parseFloat(document.getElementById('watchCurrent').value) || 0;
+      const target  = parseFloat(document.getElementById('watchTarget').value) || 0;
+      const note    = document.getElementById('watchNote').value.trim();
 
-    if (!symbol || !name) { NotificationModule.toast('請填寫股票代號與名稱'); return; }
+      if (!symbol || !name) { NotificationModule.toast('請填寫股票代號與名稱'); return; }
 
-    WatchlistModule.add({ symbol, name, currentPrice: current, targetPrice: target, note });
-    ['watchSymbol','watchName','watchCurrent','watchTarget','watchNote'].forEach(id => { document.getElementById(id).value = ''; });
-    closeModal('modalWatch');
-    NotificationModule.toast(`已加入觀察：${symbol} ${name}`);
-    DashboardModule.renderWatchlist({ watchlist: WatchlistModule.getAll() });
+      WatchlistModule.add({ symbol, name, currentPrice: current, targetPrice: target, note });
+      ['watchSymbol','watchName','watchCurrent','watchTarget','watchNote'].forEach(id => {
+        document.getElementById(id).value = '';
+      });
+      closeModal('modalWatch');
+      NotificationModule.toast(`已加入觀察：${symbol} ${name}`);
+      _safeRender();
+    } catch (err) {
+      console.error('addWatch error:', err);
+      NotificationModule.toast('加入觀察失敗，請稍後再試。');
+    }
   }
 
   function removeWatch(id) {
-    WatchlistModule.remove(id);
-    NotificationModule.toast('已移除');
-    DashboardModule.renderWatchlist({ watchlist: WatchlistModule.getAll() });
+    try {
+      WatchlistModule.remove(id);
+      NotificationModule.toast('已移除');
+      _safeRender();
+    } catch (err) {
+      console.error('removeWatch error:', err);
+      NotificationModule.toast('移除失敗，請稍後再試。');
+    }
   }
 
   // ─── Update price ─────────────────────────────────────────────────────────
 
   function openUpdatePrice(id, ctx) {
     const items = ctx === 'portfolio' ? PortfolioModule.getHoldings() : WatchlistModule.getAll();
-    const item  = items.find(i => i.id === id || i.id == id);
+    const item  = items.find(i => String(i.id) === String(id));
     if (!item) return;
     document.getElementById('updatePriceTitle').textContent = `更新現價：${item.symbol} ${item.name}`;
     document.getElementById('updatePriceValue').value = item.currentPrice || '';
@@ -173,49 +217,63 @@ const App = (() => {
   }
 
   function confirmUpdatePrice() {
-    const id    = document.getElementById('updatePriceId').value;
-    const ctx   = document.getElementById('updatePriceCtx').value;
-    const price = parseFloat(document.getElementById('updatePriceValue').value);
-    if (!price || price <= 0) { NotificationModule.toast('請輸入有效價格'); return; }
+    try {
+      const id    = document.getElementById('updatePriceId').value;
+      const ctx   = document.getElementById('updatePriceCtx').value;
+      const price = parseFloat(document.getElementById('updatePriceValue').value);
+      if (!price || price <= 0) { NotificationModule.toast('請輸入有效價格'); return; }
 
-    if (ctx === 'portfolio') {
-      PortfolioModule.updateCurrentPrice(id, price);
-    } else {
-      WatchlistModule.updatePrice(id, price);
+      if (ctx === 'portfolio') {
+        PortfolioModule.updateCurrentPrice(id, price);
+      } else {
+        WatchlistModule.updatePrice(id, price);
+      }
+      closeModal('modalUpdatePrice');
+      NotificationModule.toast('現價已更新');
+      _safeRender();
+    } catch (err) {
+      console.error('confirmUpdatePrice error:', err);
+      NotificationModule.toast('更新失敗，請稍後再試。');
     }
-    closeModal('modalUpdatePrice');
-    NotificationModule.toast('現價已更新');
-    _renderCurrentPage();
   }
 
   // ─── Settings actions ─────────────────────────────────────────────────────
 
   function editSetting(key, label, current) {
     const val = prompt(label, current);
-    if (val === null) return;
-    const num = parseFloat(val);
-    if (isNaN(num) || num <= 0) { NotificationModule.toast('請輸入有效數字'); return; }
+    if (val === null || val.trim() === '') return;
     const s = getSettings();
-    s[key] = key === 'defaultFeeRate' ? num : Math.round(num);
+    if (key === 'investmentGoal') {
+      s[key] = val.trim();
+    } else {
+      const num = parseFloat(val);
+      if (isNaN(num) || num <= 0) { NotificationModule.toast('請輸入有效數字'); return; }
+      s[key] = key === 'defaultFeeRate' ? num : Math.round(num);
+    }
     saveSettings(s);
     DashboardModule.renderSettings({ settings: s });
     NotificationModule.toast('已更新');
   }
 
   function exportData() {
-    const data = {
-      exportedAt:   new Date().toISOString(),
-      portfolio:    PortfolioModule.getHoldings(),
-      watchlist:    WatchlistModule.getAll(),
-      transactions: TransactionModule.getAll(),
-      settings:     getSettings(),
-    };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `investment-os-${Utils.today()}.json`;
-    a.click();
-    SecurityModule.log('exportData', Utils.today());
+    try {
+      const data = {
+        exportedAt:   new Date().toISOString(),
+        portfolio:    PortfolioModule.getHoldings(),
+        watchlist:    WatchlistModule.getAll(),
+        transactions: TransactionModule.getAll(),
+        settings:     getSettings(),
+      };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `investment-os-${Utils.today()}.json`;
+      a.click();
+      SecurityModule.log('exportData', Utils.today());
+    } catch (err) {
+      console.error('exportData error:', err);
+      NotificationModule.toast('匯出失敗，請稍後再試。');
+    }
   }
 
   function clearAllData() {
@@ -228,33 +286,69 @@ const App = (() => {
 
   // ─── Onboarding ────────────────────────────────────────────────────────────
 
-  let _obStep = 0;
+  let _obStep    = 0;
+  let _obGoal    = '';
+  const OB_STEPS = 4; // 0=welcome, 1=goal, 2=budget, 3=ready
+
+  function selectGoal(btn) {
+    document.querySelectorAll('.goal-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    _obGoal = btn.dataset.goal;
+    const isCustom = _obGoal === '自訂目標';
+    document.getElementById('customGoalWrap').style.display = isCustom ? '' : 'none';
+    if (isCustom) document.getElementById('ob_customGoal').focus();
+  }
 
   function nextOnboard() {
     if (_obStep === 1) {
+      // Validate goal selection
+      if (!_obGoal) { NotificationModule.toast('請選擇你的投資目標'); return; }
+      let goal = _obGoal;
+      if (goal === '自訂目標') {
+        goal = document.getElementById('ob_customGoal').value.trim();
+        if (!goal) { NotificationModule.toast('請輸入你的自訂目標'); return; }
+      }
+      const s = getSettings();
+      s.investmentGoal = goal;
+      saveSettings(s);
+
+      // Update ready screen to show chosen goal
+      document.getElementById('ob_ready_desc').innerHTML =
+        `目標：<strong>${goal}</strong><br><br>` +
+        `接下來你可以：<br><br>` +
+        `① 加入想追蹤的股票到觀察清單<br>` +
+        `② 入金並新增第一筆買入交易<br>` +
+        `③ 每天查看 Dashboard<br><br>` +
+        `記住：每一筆交易都值得記錄原因。<br>` +
+        `這是建立投資紀律最重要的一步。`;
+
+    } else if (_obStep === 2) {
       const budget = parseFloat(document.getElementById('ob_budget').value);
       if (!budget || budget <= 0) { NotificationModule.toast('請輸入每月投資金額'); return; }
       const s = getSettings();
-      s.monthlyBudget   = Math.round(budget);
-      s.reminderDay     = parseInt(document.getElementById('ob_day').value);
-      s.defaultFeeRate  = parseFloat(document.getElementById('ob_fee').value) || 0.1425;
+      s.monthlyBudget  = Math.round(budget);
+      s.reminderDay    = parseInt(document.getElementById('ob_day').value);
+      s.defaultFeeRate = parseFloat(document.getElementById('ob_fee').value) || 0.1425;
       saveSettings(s);
     }
+
     _obStep++;
     _updateObDots();
   }
 
   function _updateObDots() {
-    for (let i = 0; i < 3; i++) {
-      document.getElementById('os' + i).classList.toggle('active', i === _obStep);
-      document.getElementById('od' + i).classList.toggle('active', i === _obStep);
+    for (let i = 0; i < OB_STEPS; i++) {
+      const step = document.getElementById('os' + i);
+      const dot  = document.getElementById('od' + i);
+      if (step) step.classList.toggle('active', i === _obStep);
+      if (dot)  dot.classList.toggle('active',  i === _obStep);
     }
   }
 
   function finishOnboard() {
     DB.set('ready', true);
     document.getElementById('onboarding').classList.remove('show');
-    _renderCurrentPage();
+    _safeRender();
   }
 
   // ─── Init ──────────────────────────────────────────────────────────────────
@@ -291,18 +385,24 @@ const App = (() => {
       m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
     });
 
+    // Global error boundary — prevent silent failures
+    window.addEventListener('error', (e) => {
+      console.error('Uncaught error:', e.error);
+      NotificationModule.toast('發生錯誤，請重新整理頁面。資料已自動保存。');
+    });
+
     // Start
     if (!DB.get('ready', false)) {
       document.getElementById('onboarding').classList.add('show');
     } else {
-      _renderCurrentPage();
+      _safeRender();
     }
   }
 
-  // ─── Private modal helpers ────────────────────────────────────────────────
+  // ─── Private helpers ──────────────────────────────────────────────────────
 
   function _onTxTypeChange() {
-    const type = document.getElementById('txType').value;
+    const type   = document.getElementById('txType').value;
     const isCash = type === 'deposit' || type === 'withdraw';
     document.getElementById('txStockFields').style.display = isCash ? 'none' : '';
     document.getElementById('txCashFields').style.display  = isCash ? '' : 'none';
@@ -315,15 +415,14 @@ const App = (() => {
     const price  = parseFloat(document.getElementById('txPrice').value) || 0;
     const type   = document.getElementById('txType').value;
     if (shares && price) {
-      const fee = Utils.calcFee(shares * price, getSettings().defaultFeeRate, type === 'sell');
-      document.getElementById('txFee').value = fee;
+      document.getElementById('txFee').value =
+        Utils.calcFee(shares * price, getSettings().defaultFeeRate, type === 'sell');
     }
   }
 
   function _clearTxForm() {
-    ['txSymbol','txName','txShares','txPrice','txFee','txCashAmt','txReason','txNote'].forEach(id => {
-      document.getElementById(id).value = '';
-    });
+    ['txSymbol','txName','txShares','txPrice','txFee','txCashAmt','txReason','txNote']
+      .forEach(id => { document.getElementById(id).value = ''; });
   }
 
   return {
@@ -338,6 +437,7 @@ const App = (() => {
     editSetting,
     exportData,
     clearAllData,
+    selectGoal,
     nextOnboard,
     finishOnboard,
   };

@@ -10,10 +10,10 @@ const DashboardModule = (() => {
 
   // ── Home ──────────────────────────────────────────────────────────────────
 
-  function renderHome({ aiResult, holdings, watchlistHits, settings }) {
+  function renderHome({ aiResult, holdings, watchlist, cash, totalAssets, settings, recentTxs }) {
     const { items, actionCount } = aiResult;
 
-    // ① Daily brief
+    // ① 今日一句建議 (AI Brief) — always the biggest block
     let cls, icon, title, sub;
     if (actionCount === 0) {
       cls = 'status-calm'; icon = '😌';
@@ -28,7 +28,6 @@ const DashboardModule = (() => {
       title = `有 ${actionCount} 件事需要確認`;
       sub   = '請花 3 分鐘檢視以下提醒。';
     }
-
     _set('dailyBrief', `
       <div class="brief-status ${cls}">
         <div class="brief-icon">${icon}</div>
@@ -38,60 +37,127 @@ const DashboardModule = (() => {
       ${items.length ? _aiCard(items) : ''}
     `);
 
-    // ② Portfolio mini
-    if (holdings.length > 0) {
-      const totalCost = holdings.reduce((s, h) => s + h.shares * h.avgCost, 0);
-      const totalVal  = holdings.reduce((s, h) => s + h.shares * (h.currentPrice || h.avgCost), 0);
-      const pnl       = totalVal - totalCost;
-      const pnlPct    = totalCost > 0 ? pnl / totalCost * 100 : 0;
-      _set('portfolioHome', `
+    // ② 目前資產
+    const stockVal  = holdings.reduce((s, h) => s + h.shares * (h.currentPrice || h.avgCost), 0);
+    const totalCost = holdings.reduce((s, h) => s + h.shares * h.avgCost, 0);
+    const pnl       = stockVal - totalCost;
+    const pnlPct    = totalCost > 0 ? pnl / totalCost * 100 : 0;
+    const goalLabel = settings.investmentGoal || '投資目標';
+    _set('assetsHome', `
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div class="card-title" style="margin-bottom:0">目前資產</div>
+          <span class="goal-tag">🎯 ${goalLabel}</span>
+        </div>
+        <div class="asset-row">
+          <span class="asset-label">總資產</span>
+          <span class="asset-total">$${Utils.fmt(totalAssets)}</span>
+        </div>
+        <div class="asset-row">
+          <span class="asset-label">現金</span>
+          <span class="asset-value ${cash < 0 ? 'negative' : ''}">$${Utils.fmt(cash)}</span>
+        </div>
+        <div class="asset-row">
+          <span class="asset-label">持股市值</span>
+          <span class="asset-value">$${Utils.fmt(stockVal)}</span>
+        </div>
+        ${holdings.length > 0 ? `
+        <div class="asset-row" style="border-top:1px solid var(--border);margin-top:4px;padding-top:10px">
+          <span class="asset-label">未實現損益</span>
+          <span class="asset-value ${Utils.pnlCls(pnl)}">${Utils.pnlSign(pnl)}$${Utils.fmt(Math.abs(pnl))} (${Utils.pnlSign(pnlPct)}${Utils.fmt(pnlPct, 2)}%)</span>
+        </div>` : ''}
+      </div>
+    `);
+
+    // ③ Watchlist — always shown (not only when hits)
+    if (watchlist.length > 0) {
+      const rows = watchlist.slice(0, 4).map(w => {
+        const met  = w.currentPrice && w.targetPrice && w.currentPrice <= w.targetPrice;
+        const diff = (w.currentPrice && w.targetPrice)
+          ? ((w.currentPrice / w.targetPrice - 1) * 100) : null;
+        return `
+          <div class="watch-row" style="padding:8px 0">
+            <div>
+              <span style="font-size:15px;font-weight:700">${w.symbol}</span>
+              <span style="font-size:13px;color:var(--muted);margin-left:6px">${w.name}</span>
+            </div>
+            <div style="text-align:right">
+              <span class="asset-value ${met ? 'target-met' : ''}">$${Utils.fmt(w.currentPrice || 0, 2)}${met ? ' 🎯' : ''}</span>
+              ${diff !== null ? `<div style="font-size:11px;${met ? 'color:var(--green)' : 'color:var(--muted)'}">${diff > 0 ? '+' : ''}${Utils.fmt(diff, 1)}%</div>` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+      const more = watchlist.length > 4 ? `<div style="font-size:12px;color:var(--muted);text-align:center;padding-top:6px">還有 ${watchlist.length - 4} 檔 →</div>` : '';
+      _set('watchlistHome', `
         <div class="card">
-          <div class="card-title">持倉概覽</div>
-          <div class="total-row">
-            <span class="total-label">股票市值</span>
-            <span style="font-size:18px;font-weight:700">$${Utils.fmt(totalVal)}</span>
-          </div>
-          <div class="total-row">
-            <span class="total-label">未實現損益</span>
-            <span class="${Utils.pnlCls(pnl)}">${Utils.pnlSign(pnl)}$${Utils.fmt(Math.abs(pnl))} (${Utils.pnlSign(pnlPct)}${Utils.fmt(pnlPct, 2)}%)</span>
-          </div>
+          <div class="card-title">觀察清單</div>
+          ${rows}
+          ${more}
         </div>
       `);
     } else {
-      _set('portfolioHome', '');
-    }
-
-    // ③ Watchlist hits
-    if (watchlistHits.length > 0) {
       _set('watchlistHome', `
         <div class="card">
-          <div class="card-title">觀察清單提醒</div>
-          ${watchlistHits.map(w => `
+          <div class="card-title">觀察清單</div>
+          <div style="padding:12px 0;color:var(--muted);font-size:14px;text-align:center">
+            點右下角 ＋ 加入第一檔股票
+          </div>
+        </div>
+      `);
+    }
+
+    // ④ 今日提醒
+    const d = new Date().getDate();
+    const reminders = [];
+    if (d >= settings.reminderDay && d <= settings.reminderDay + 4) {
+      reminders.push({ icon: '📅', text: `本月定期投入日：預算 <strong>$${Utils.fmt(settings.monthlyBudget)}</strong>` });
+    }
+    const hits = watchlist.filter(w => w.currentPrice && w.targetPrice && w.currentPrice <= w.targetPrice);
+    hits.forEach(w => {
+      reminders.push({ icon: '🎯', text: `<strong>${w.symbol} ${w.name}</strong> 已達目標買入價 $${Utils.fmt(w.targetPrice, 2)}` });
+    });
+    if (reminders.length > 0) {
+      _set('remindersHome', `
+        <div class="card">
+          <div class="card-title">今日提醒</div>
+          ${reminders.map(r => `
             <div class="insight-item">
-              <div class="insight-icon">🎯</div>
-              <div class="insight-text"><strong>${w.symbol} ${w.name}</strong> 已達目標價 $${Utils.fmt(w.targetPrice, 2)}</div>
+              <div class="insight-icon">${r.icon}</div>
+              <div class="insight-text">${r.text}</div>
             </div>
           `).join('')}
         </div>
       `);
     } else {
-      _set('watchlistHome', '');
+      _set('remindersHome', '');
     }
 
-    // ④ Reminders
-    const d = new Date().getDate();
-    if (d >= settings.reminderDay && d <= settings.reminderDay + 4) {
-      _set('remindersHome', `
-        <div class="card">
-          <div class="card-title">本月提醒</div>
-          <div class="insight-item">
-            <div class="insight-icon">📅</div>
-            <div class="insight-text">本月定期投入日：預算 <strong>$${Utils.fmt(settings.monthlyBudget)}</strong></div>
+    // ⑤ 最新活動
+    if (recentTxs && recentTxs.length > 0) {
+      const LABEL = { buy:'買入', sell:'賣出', deposit:'入金', withdraw:'出金' };
+      const rows = recentTxs.map(tx => {
+        const isTrade = tx.type === 'buy' || tx.type === 'sell';
+        const desc = isTrade
+          ? `${LABEL[tx.type]} ${tx.symbol} ${tx.name}`
+          : `${LABEL[tx.type]} $${Utils.fmt(tx.cashAmt)}`;
+        const dateStr = tx.date ? tx.date.slice(5) : '';
+        return `
+          <div class="activity-item">
+            <div class="activity-dot activity-dot-${tx.type}"></div>
+            <div class="activity-text">${desc}</div>
+            <div class="activity-date">${dateStr}</div>
           </div>
+        `;
+      }).join('');
+      _set('activityHome', `
+        <div class="card">
+          <div class="card-title">最新活動</div>
+          ${rows}
         </div>
       `);
     } else {
-      _set('remindersHome', '');
+      _set('activityHome', '');
     }
   }
 
@@ -260,6 +326,11 @@ const DashboardModule = (() => {
     document.getElementById('settingsView').innerHTML = `
       <div class="card">
         <div class="card-title">投資設定</div>
+        ${settings.investmentGoal ? `
+        <div class="setting-row">
+          <span class="setting-label">投資目標</span>
+          <span class="setting-value" onclick="App.editSetting('investmentGoal','投資目標','${settings.investmentGoal}')">${settings.investmentGoal} ✏️</span>
+        </div>` : ''}
         <div class="setting-row">
           <span class="setting-label">每月投資預算</span>
           <span class="setting-value" onclick="App.editSetting('monthlyBudget','每月投資預算（元）',${settings.monthlyBudget})">$${Utils.fmt(settings.monthlyBudget)} ✏️</span>
