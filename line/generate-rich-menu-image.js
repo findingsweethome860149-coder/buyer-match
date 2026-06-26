@@ -40,7 +40,7 @@ const HTML = `<!DOCTYPE html>
     background: rgba(212, 175, 55, 0);
   }
   .icon {
-    font-size: 64px;
+    font-size: 90px;
     line-height: 1;
     filter: drop-shadow(0 2px 8px rgba(212,175,55,0.4));
   }
