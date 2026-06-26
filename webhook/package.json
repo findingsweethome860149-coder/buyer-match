@@ -1,0 +1,12 @@
+{
+  "name": "finding-sweet-home-webhook",
+  "version": "1.0.0",
+  "description": "LINE Webhook for 愛家的綸",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
