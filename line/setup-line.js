@@ -49,12 +49,12 @@ const RICH_MENU_BODY = {
 
 // ---------- HTTP helpers ----------
 
-function apiRequest(method, path, body, contentType = 'application/json') {
+function apiRequest(method, path, body, contentType = 'application/json', hostname = 'api.line.me') {
   return new Promise((resolve, reject) => {
     const isBuffer = Buffer.isBuffer(body);
     const payload = isBuffer ? body : (body ? Buffer.from(JSON.stringify(body)) : null);
     const options = {
-      hostname: 'api.line.me',
+      hostname,
       path,
       method,
       headers: {
@@ -114,7 +114,8 @@ async function uploadImage(richMenuId) {
     'POST',
     `/v2/bot/richmenu/${richMenuId}/content`,
     image,
-    'image/png'
+    'image/png',
+    'api-data.line.me'
   );
   if (res.status !== 200) {
     throw new Error(`上傳失敗 ${res.status}: ${JSON.stringify(res.body)}`);
