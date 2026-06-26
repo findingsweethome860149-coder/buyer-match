@@ -75,6 +75,7 @@ const App = (() => {
         unrealPct:   _unrealPct(holdings),
         realized:    PortfolioModule.getRealizedPnL(txs),
         totalAssets: PortfolioModule.getTotalAssets(txs),
+        todayPnL:    PortfolioModule.getTodayPnL(),
       });
     } else if (_page === 'watchlist') {
       DashboardModule.renderWatchlist({ watchlist });
@@ -93,26 +94,29 @@ const App = (() => {
 
   // ─── Transaction actions ───────────────────────────────────────────────────
 
+  let _pendingTx = null; // staged transaction pending confirm
+
   function submitTransaction() {
     try {
       const type = document.getElementById('txType').value;
       const date = document.getElementById('txDate').value;
       if (!date) { NotificationModule.toast('請選擇日期'); return; }
 
+      const LABEL = { buy:'買入', sell:'賣出', deposit:'入金', withdraw:'出金' };
+
       if (type === 'deposit' || type === 'withdraw') {
         const cashAmt = parseFloat(document.getElementById('txCashAmt').value);
         if (!cashAmt || cashAmt <= 0) { NotificationModule.toast('請輸入金額'); return; }
-        const tx = {
+        _pendingTx = {
           type, date, cashAmt,
           reason: document.getElementById('txReason').value.trim(),
           note:   document.getElementById('txNote').value.trim(),
         };
-        TransactionModule.add(tx);
-        SecurityModule.log(type, `$${cashAmt}`);
-        _clearTxForm();
+        document.getElementById('txConfirmBody').innerHTML = `
+          <div class="insight-item"><div class="insight-icon">${type === 'deposit' ? '💰' : '💸'}</div>
+          <div class="insight-text"><strong>${LABEL[type]}</strong><br>金額：$${Utils.fmt(cashAmt)}<br>日期：${date}</div></div>`;
         closeModal('modalTx');
-        NotificationModule.toast(`${type === 'deposit' ? '入金' : '出金'} $${Utils.fmt(cashAmt)} 已記錄`);
-        _safeRender();
+        openModal('modalTxConfirm');
         return;
       }
 
@@ -128,27 +132,58 @@ const App = (() => {
       if (!shares || shares <= 0) { NotificationModule.toast('請填寫股數'); return; }
       if (!price  || price  <= 0) { NotificationModule.toast('請填寫成交價格'); return; }
 
-      // Calculate realized P&L for sells
-      let realizedPnL;
-      if (type === 'sell') {
-        const h = PortfolioModule.getHoldings().find(x => x.symbol === symbol);
-        if (h) realizedPnL = (price - h.avgCost) * shares - fee;
-      }
+      const total = shares * price + (type === 'buy' ? fee : -fee);
+      _pendingTx = { type, date, symbol, name, shares, price, fee, reason, note };
 
-      const tx = { type, date, symbol, name, shares, price, fee, reason, note };
-      if (realizedPnL !== undefined) tx.realizedPnL = realizedPnL;
-      TransactionModule.add(tx);
-
-      // Portfolio recalculates from full transaction history (not mutated directly)
-      PortfolioModule.recalculate(TransactionModule.getAll());
-
-      SecurityModule.log(type, `${symbol} ${shares}股 @${price}`);
-      _clearTxForm();
+      document.getElementById('txConfirmBody').innerHTML = `
+        <div class="insight-item"><div class="insight-icon">${type === 'buy' ? '📈' : '📉'}</div>
+        <div class="insight-text">
+          <strong>${LABEL[type]} ${symbol} ${name}</strong><br>
+          股數：${Utils.fmt(shares)} 股 × $${Utils.fmt(price, 2)}<br>
+          手續費：$${Utils.fmt(fee)}<br>
+          ${type === 'buy' ? '合計支出' : '合計收入'}：<strong>$${Utils.fmt(Math.abs(total))}</strong><br>
+          日期：${date}
+          ${reason ? `<br>理由：${reason}` : ''}
+        </div></div>`;
       closeModal('modalTx');
-      NotificationModule.toast(`${type === 'buy' ? '買入' : '賣出'} ${symbol} ${Utils.fmt(shares)} 股已記錄`);
-      _safeRender();
+      openModal('modalTxConfirm');
     } catch (err) {
       console.error('submitTransaction error:', err);
+      NotificationModule.toast('新增交易失敗，請稍後再試。資料未遺失。');
+    }
+  }
+
+  function confirmTransaction() {
+    try {
+      const tx = _pendingTx;
+      if (!tx) return;
+      _pendingTx = null;
+
+      if (tx.type === 'deposit' || tx.type === 'withdraw') {
+        TransactionModule.add(tx);
+        SecurityModule.log(tx.type, `$${tx.cashAmt}`);
+        closeModal('modalTxConfirm');
+        _clearTxForm();
+        NotificationModule.toast(`${tx.type === 'deposit' ? '入金' : '出金'} $${Utils.fmt(tx.cashAmt)} 已記錄`);
+        _safeRender();
+        return;
+      }
+
+      // Calculate realized P&L for sells
+      if (tx.type === 'sell') {
+        const h = PortfolioModule.getHoldings().find(x => x.symbol === tx.symbol);
+        if (h) tx.realizedPnL = (tx.price - h.avgCost) * tx.shares - tx.fee;
+      }
+
+      TransactionModule.add(tx);
+      PortfolioModule.recalculate(TransactionModule.getAll());
+      SecurityModule.log(tx.type, `${tx.symbol} ${tx.shares}股 @${tx.price}`);
+      closeModal('modalTxConfirm');
+      _clearTxForm();
+      NotificationModule.toast(`${tx.type === 'buy' ? '買入' : '賣出'} ${tx.symbol} ${Utils.fmt(tx.shares)} 股已記錄`);
+      _safeRender();
+    } catch (err) {
+      console.error('confirmTransaction error:', err);
       NotificationModule.toast('新增交易失敗，請稍後再試。資料未遺失。');
     }
   }
@@ -190,6 +225,86 @@ const App = (() => {
       console.error('addWatch error:', err);
       NotificationModule.toast('加入觀察失敗，請稍後再試。');
     }
+  }
+
+  // ─── Stock detail modal ───────────────────────────────────────────────────
+
+  let _detailWatchId = null;
+
+  function openStockDetail(id) {
+    const w = WatchlistModule.getAll().find(x => String(x.id) === String(id));
+    if (!w) return;
+    _detailWatchId = id;
+    const h = PortfolioModule.getHoldings().find(x => x.symbol === w.symbol);
+    const score = AIModule.scoreStock(w);
+    const sl    = AIModule.scoreLabel(score);
+    const points = AIModule.analyzeStock(w, h);
+
+    document.getElementById('stockDetailTitle').innerHTML =
+      `${w.symbol} ${w.name} <span class="score-badge ${sl.cls}">${sl.label}</span>`;
+    document.getElementById('stockDetailBody').innerHTML = `
+      <div style="margin-bottom:12px">
+        <div style="font-size:24px;font-weight:800;margin-bottom:2px">$${Utils.fmt(w.currentPrice || 0, 2)}</div>
+        <div style="font-size:13px;color:var(--muted)">目標買入價：$${w.targetPrice ? Utils.fmt(w.targetPrice, 2) : '未設定'}</div>
+      </div>
+      <div style="margin-bottom:12px">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:6px">AI 評分</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="flex:1;height:6px;border-radius:3px;background:var(--surface2)">
+            <div style="width:${score}%;height:6px;border-radius:3px;background:${score>=80?'var(--green)':score>=50?'var(--yellow)':'var(--red)'}"></div>
+          </div>
+          <span style="font-size:13px;font-weight:700">${score}/100</span>
+        </div>
+      </div>
+      ${points.map(p => `
+        <div class="insight-item">
+          <div class="insight-icon">${p.icon}</div>
+          <div class="insight-text">${p.text}</div>
+        </div>
+      `).join('')}
+    `;
+    openModal('modalStockDetail');
+  }
+
+  function stockDetailBuy() {
+    const w = _detailWatchId ? WatchlistModule.getAll().find(x => String(x.id) === String(_detailWatchId)) : null;
+    closeModal('modalStockDetail');
+    openModal('modalTx');
+    if (w) {
+      setTimeout(() => {
+        document.getElementById('txSymbol').value = w.symbol;
+        document.getElementById('txName').value   = w.name;
+        if (w.currentPrice) document.getElementById('txPrice').value = w.currentPrice;
+        document.getElementById('txType').dispatchEvent(new Event('change'));
+      }, 50);
+    }
+  }
+
+  // ─── Search / filter ──────────────────────────────────────────────────────
+
+  function filterWatchlist(q) {
+    const el = document.getElementById('watchlistView');
+    if (!el || !el._allWatchlist) return;
+    const list = q.trim()
+      ? el._allWatchlist.filter(w =>
+          w.symbol.toLowerCase().includes(q.toLowerCase()) ||
+          w.name.toLowerCase().includes(q.toLowerCase()))
+      : el._allWatchlist;
+    const card = document.getElementById('watchlistRows');
+    if (card) card.innerHTML = `<div class="card-title">觀察清單 <span style="font-size:11px;color:var(--muted)">點股票看分析 · 點價格更新</span></div>${el._rows(list)}`;
+  }
+
+  function filterHistory(q) {
+    const el = document.getElementById('historyView');
+    if (!el || !el._allTxs) return;
+    const list = q.trim()
+      ? el._allTxs.filter(t =>
+          (t.symbol || '').toLowerCase().includes(q.toLowerCase()) ||
+          (t.name   || '').toLowerCase().includes(q.toLowerCase()) ||
+          (t.date   || '').includes(q))
+      : el._allTxs;
+    const card = document.getElementById('historyRows');
+    if (card) card.innerHTML = `<div class="card-title">所有交易</div>${el._rowFn(list) || '<div style="padding:16px;color:var(--muted);text-align:center">找不到符合的紀錄</div>'}`;
   }
 
   function removeWatch(id) {
@@ -429,9 +544,14 @@ const App = (() => {
     init,
     navigate,
     submitTransaction,
+    confirmTransaction,
     deleteTx,
     addWatch,
     removeWatch,
+    openStockDetail,
+    stockDetailBuy,
+    filterWatchlist,
+    filterHistory,
     openUpdatePrice,
     confirmUpdatePrice,
     editSetting,

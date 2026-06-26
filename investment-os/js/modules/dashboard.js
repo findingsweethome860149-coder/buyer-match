@@ -163,7 +163,7 @@ const DashboardModule = (() => {
 
   // ── Portfolio ─────────────────────────────────────────────────────────────
 
-  function renderPortfolio({ holdings, cash, unrealized, unrealPct, realized, totalAssets }) {
+  function renderPortfolio({ holdings, cash, unrealized, unrealPct, realized, totalAssets, todayPnL }) {
     const el = document.getElementById('portfolioView');
 
     if (holdings.length === 0 && cash === 0) {
@@ -200,7 +200,14 @@ const DashboardModule = (() => {
       `;
     }).join('');
 
+    const todayBar = todayPnL !== 0 ? `
+      <div class="today-pnl">
+        <span style="color:var(--muted)">今日損益</span>
+        <span class="${Utils.pnlCls(todayPnL)}" style="font-weight:700">${Utils.pnlSign(todayPnL)}$${Utils.fmt(Math.abs(todayPnL))}</span>
+      </div>` : '';
+
     el.innerHTML = `
+      ${todayBar}
       <div class="card">
         <div class="card-title">總資產</div>
         <div class="total-row"><span class="total-label">總資產</span><span class="total-value">$${Utils.fmt(totalAssets)}</span></div>
@@ -227,35 +234,46 @@ const DashboardModule = (() => {
       return;
     }
 
-    const rows = watchlist.map(w => {
-      const met  = w.currentPrice && w.targetPrice && w.currentPrice <= w.targetPrice;
-      const diff = (w.currentPrice && w.targetPrice) ? ((w.currentPrice / w.targetPrice - 1) * 100) : null;
-      return `
-        <div class="watch-row">
-          <div>
-            <div class="stock-symbol">${w.symbol}</div>
-            <div class="stock-name">${w.name}</div>
-            ${w.note ? `<div style="font-size:12px;color:var(--muted);margin-top:3px">${w.note}</div>` : ''}
-          </div>
-          <div style="text-align:right">
-            <div class="watch-price ${met ? 'target-met' : ''}"
-                 onclick="App.openUpdatePrice('${w.id}','watch')">
-              $${Utils.fmt(w.currentPrice || 0, 2)}${met ? ' 🎯' : ' ✏️'}
+    function _rows(list) {
+      return list.map(w => {
+        const met    = w.currentPrice && w.targetPrice && w.currentPrice <= w.targetPrice;
+        const diff   = (w.currentPrice && w.targetPrice) ? ((w.currentPrice / w.targetPrice - 1) * 100) : null;
+        const score  = AIModule.scoreStock(w);
+        const sl     = AIModule.scoreLabel(score);
+        return `
+          <div class="watch-row" onclick="App.openStockDetail('${w.id}')" style="cursor:pointer">
+            <div style="flex:1;min-width:0">
+              <div style="display:flex;align-items:center;gap:6px">
+                <span class="stock-symbol">${w.symbol}</span>
+                <span class="score-badge ${sl.cls}">${sl.label} ${score}</span>
+                ${met ? '<span style="font-size:14px">🎯</span>' : ''}
+              </div>
+              <div class="stock-name">${w.name}</div>
+              ${w.note ? `<div style="font-size:12px;color:var(--muted);margin-top:2px">${w.note}</div>` : ''}
             </div>
-            <div style="font-size:12px;color:var(--muted);margin-top:2px">目標 $${w.targetPrice ? Utils.fmt(w.targetPrice, 2) : '—'}</div>
-            ${diff !== null ? `<div style="font-size:12px;margin-top:2px" class="${met ? 'positive' : 'negative'}">${diff > 0 ? '+' : ''}${Utils.fmt(diff, 1)}%</div>` : ''}
-            <button class="btn-sm" onclick="App.removeWatch('${w.id}')" style="margin-top:6px">移除</button>
+            <div style="text-align:right;flex-shrink:0;padding-left:8px">
+              <div class="watch-price ${met ? 'target-met' : ''}"
+                   onclick="event.stopPropagation();App.openUpdatePrice('${w.id}','watch')">
+                $${Utils.fmt(w.currentPrice || 0, 2)} ✏️
+              </div>
+              <div style="font-size:12px;color:var(--muted);margin-top:2px">目標 $${w.targetPrice ? Utils.fmt(w.targetPrice, 2) : '—'}</div>
+              ${diff !== null ? `<div style="font-size:12px;margin-top:2px" class="${met ? 'positive' : diff < 0 ? 'positive' : 'negative'}">${diff > 0 ? '+' : ''}${Utils.fmt(diff, 1)}%</div>` : ''}
+            </div>
           </div>
-        </div>
-      `;
-    }).join('');
+        `;
+      }).join('');
+    }
 
     el.innerHTML = `
-      <div class="card">
-        <div class="card-title">觀察清單 <span style="font-size:11px;color:var(--muted)">點價格更新現價</span></div>
-        ${rows}
+      <input class="search-bar" id="watchSearch" placeholder="搜尋股票代號或名稱…" oninput="App.filterWatchlist(this.value)">
+      <div class="card" id="watchlistRows">
+        <div class="card-title">觀察清單 <span style="font-size:11px;color:var(--muted)">點股票看分析 · 點價格更新</span></div>
+        ${_rows(watchlist)}
       </div>
     `;
+
+    el._allWatchlist = watchlist;
+    el._rows = _rows;
   }
 
   // ── History ───────────────────────────────────────────────────────────────
@@ -313,11 +331,37 @@ const DashboardModule = (() => {
         <div class="total-row"><span class="total-label">累計手續費</span><span class="negative">$${Utils.fmt(totalFees)}</span></div>
         <div class="total-row"><span class="total-label">交易筆數</span><span>${txs.length} 筆</span></div>
       </div>
-      <div class="card">
+      <input class="search-bar" id="historySearch" placeholder="搜尋股票代號、名稱或日期…" oninput="App.filterHistory(this.value)">
+      <div class="card" id="historyRows">
         <div class="card-title">所有交易</div>
         ${rows}
       </div>
     `;
+    el._allTxs = txs;
+    el._rowFn  = (list) => list.map(tx => {
+      const isTrade = tx.type === 'buy' || tx.type === 'sell';
+      const amount  = isTrade ? (tx.shares * tx.price) : tx.cashAmt;
+      const sharesFmt = tx.shares % 1 !== 0 ? Utils.fmt(tx.shares, 3) : Utils.fmt(tx.shares);
+      return `
+        <div class="tx-row">
+          <div style="flex:1;min-width:0">
+            <div class="tx-date">${tx.date}</div>
+            <div class="tx-desc">
+              <span class="chip ${CHIP[tx.type]}">${LABEL[tx.type]}</span>
+              ${isTrade ? `${tx.symbol} ${tx.name}` : '現金'}
+            </div>
+            ${tx.reason ? `<div style="font-size:12px;color:var(--muted);margin-top:3px">理由：${tx.reason}</div>` : ''}
+            ${tx.note   ? `<div style="font-size:12px;color:var(--muted);margin-top:1px">${tx.note}</div>` : ''}
+          </div>
+          <div style="flex-shrink:0;padding-left:12px">
+            <div class="tx-amount ${CLS[tx.type]}">${SIGN[tx.type]}$${Utils.fmt(amount)}</div>
+            ${isTrade ? `<div class="tx-sub">${sharesFmt} 股 @ $${Utils.fmt(tx.price, 2)}</div>` : ''}
+            ${tx.fee    ? `<div class="tx-sub">手續費 $${Utils.fmt(tx.fee)}</div>` : ''}
+            <button class="btn-sm" onclick="App.deleteTx('${tx.id}')" style="margin-top:6px">刪除</button>
+          </div>
+        </div>
+      `;
+    }).join('');
   }
 
   // ── Settings ──────────────────────────────────────────────────────────────
