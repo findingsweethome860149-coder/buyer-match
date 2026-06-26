@@ -1,0 +1,48 @@
+{
+  "_comment": "Finding Sweet Home — LINE 訊息設定 (Phase 1)",
+
+  "welcome_message": {
+    "type": "text",
+    "trigger": "加入好友",
+    "text": "你好，我是愛家的綸 張家綸 👋\n\n高雄左營、三民專業不動產顧問。\n\n孩子在哪長大，我比你還在乎。\n\n不是每間房都適合孩子，\n但總有一間，剛好是你的家。\n\n━━━━━━━━━━━━━━━\n你可以跟我說：\n🏠 我要找房\n🔑 我要賣房\n💰 免費估價\n🎓 學區宅\n━━━━━━━━━━━━━━━\n\n或直接點選下方選單開始 ⬇️"
+  },
+
+  "auto_replies": [
+    {
+      "id": "buy",
+      "triggers": ["找房", "買房", "我要找房"],
+      "type": "text",
+      "text": "🏠 買方需求登記\n\n您好！我是愛家的綸張家綸，\n高雄左營、三民專業不動產顧問。\n\n請告訴我您的需求：\n• 預算範圍\n• 希望學區 / 地段\n• 房型坪數\n• 自住 or 投資？\n\n我會為您篩選最合適的物件 🙌\n\n📞 0987-860149\n🔗 https://findingsweethome860149-coder.github.io/buyer-match/card.html"
+    },
+    {
+      "id": "sell",
+      "triggers": ["賣房", "委託", "我要賣房"],
+      "type": "text",
+      "text": "🔑 屋主委託\n\n您好！我是愛家的綸張家綸。\n高雄左營、三民區操盤經驗豐富。\n\n委託前請先了解：\n• 免費市場估價\n• 精準行銷策略\n• 全程透明服務\n\n請留下您的聯絡方式，\n我們將安排免費估價 📋\n\n📞 0987-860149\n🔗 https://findingsweethome860149-coder.github.io/buyer-match/card.html"
+    },
+    {
+      "id": "valuation",
+      "triggers": ["估價", "免費估價"],
+      "type": "text",
+      "text": "💰 免費房屋估價\n\n高雄左營、三民區成交行情，\n由我親自為您分析。\n\n請提供：\n• 房屋地址或路段\n• 坪數（室內 / 權狀）\n• 屋齡\n• 樓層\n\n我將於 24 小時內提供估價報告 ✅\n\n📞 0987-860149"
+    },
+    {
+      "id": "school",
+      "triggers": ["學區", "學區宅"],
+      "type": "text",
+      "text": "🎓 高雄學區宅指南\n\n左營、三民最熱門學區宅資訊：\n\n🏫 左營區：\n  新上國小 / 左營國中 / 左營高中\n\n🏫 三民區：\n  民族國小 / 陽明國中 / 高雄高中\n\n需要學區地圖或目前在售物件？\n請直接告訴我 📍\n\n📞 0987-860149"
+    },
+    {
+      "id": "article",
+      "triggers": ["文章", "房市"],
+      "type": "text",
+      "text": "📰 房市文章\n\n最新高雄房市分析、換屋攻略、\n學區宅指南，盡在：\n\n🔗 https://www.findingsweethomekh.com/\n\n歡迎訂閱，掌握第一手資訊 📊"
+    },
+    {
+      "id": "about",
+      "triggers": ["家綸", "聯絡"],
+      "type": "text",
+      "text": "👤 認識愛家的綸\n\n張家綸 — 高雄不動產顧問\n服務區域：左營、三民\n\n孩子在哪長大，我比你還在乎。\n\n📱 LINE ID：andrea773\n📞 電話：0987-860149\n🔗 電子名片：https://findingsweethome860149-coder.github.io/buyer-match/card.html"
+    }
+  ]
+}
