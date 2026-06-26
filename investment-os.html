@@ -483,8 +483,9 @@
       <input class="form-input" id="txDate" type="date">
     </div>
     <div class="form-group">
-      <label class="form-label">備註（選填）</label>
-      <input class="form-input" id="txNote" placeholder="例：定期定額買入">
+      <label class="form-label">這次交易的理由 <span style="color:var(--red)">*</span></label>
+      <input class="form-input" id="txNote" placeholder="例：定期定額執行、等待已久的目標價、長期持有計畫">
+      <div style="font-size:11px;color:var(--muted);margin-top:5px">記錄理由是建立投資紀律最重要的一步。</div>
     </div>
     <button class="btn btn-primary" onclick="addTransaction()">確認新增</button>
   </div>
@@ -517,8 +518,8 @@
       </div>
     </div>
     <div class="form-group">
-      <label class="form-label">備註（選填）</label>
-      <input class="form-input" id="watchNote" placeholder="例：等待回調再買">
+      <label class="form-label">加入觀察的理由（選填）</label>
+      <input class="form-input" id="watchNote" placeholder="例：等待回調再買、長期追蹤基本面">
     </div>
     <button class="btn btn-primary" onclick="addWatchItem()">加入觀察</button>
   </div>
@@ -661,7 +662,8 @@ function generateInsights() {
     if (w.currentPrice && w.targetPrice && w.currentPrice <= w.targetPrice) {
       insights.push({
         icon: '🎯',
-        text: `<strong>${w.symbol} ${w.name}</strong> 現價 $${fmt(w.currentPrice)} 已達您的目標買入價 $${fmt(w.targetPrice)}，可考慮建立部位。`,
+        text: `<strong>${w.symbol} ${w.name}</strong> 現價 $${fmt(w.currentPrice, 2)} 已到達你當初設定的目標買入價 $${fmt(w.targetPrice, 2)}。<br><span style="color:var(--muted);font-size:12px">當初觀察理由：${w.note || '未記錄'}</span>`,
+        reason: '你設定的目標價已達到，是否要依計畫買入，由你決定。',
         priority: 1
       });
       actionCount++;
@@ -674,7 +676,8 @@ function generateInsights() {
   if (day >= settings.reminderDay && day <= settings.reminderDay + 5) {
     insights.push({
       icon: '📅',
-      text: `本月定期定額提醒：預算 <strong>$${fmt(settings.monthlyBudget)}</strong>，今天是好時機確認是否已執行本月投入。`,
+      text: `本月定期定額時間到了。你設定的每月投資預算是 <strong>$${fmt(settings.monthlyBudget)}</strong>。`,
+      reason: '是否執行本月定期投入，由你決定。',
       priority: 2
     });
     actionCount++;
@@ -689,7 +692,8 @@ function generateInsights() {
       if (pct > 60) {
         insights.push({
           icon: '⚖️',
-          text: `<strong>${h.symbol} ${h.name}</strong> 佔您投資組合的 ${fmt(pct, 1)}%，集中度偏高。長期來看可考慮分散配置。`,
+          text: `<strong>${h.symbol} ${h.name}</strong> 目前佔投資組合 ${fmt(pct, 1)}%，集中度偏高。長期來說集中持股風險較大。`,
+          reason: '是否分散配置，由你決定。',
           priority: 3
         });
       }
@@ -705,7 +709,8 @@ function generateInsights() {
     const pct = (best.currentPrice / best.avgCost - 1) * 100;
     insights.push({
       icon: '📈',
-      text: `<strong>${best.symbol} ${best.name}</strong> 目前報酬率 <strong class="positive">+${fmt(pct, 1)}%</strong>，持續持有長期投資策略執行中。`,
+      text: `<strong>${best.symbol} ${best.name}</strong> 報酬率 <strong class="positive">+${fmt(pct, 1)}%</strong>，長期投資策略持續執行中。耐心是最好的投資工具。`,
+      reason: null,
       priority: 4
     });
   }
@@ -750,13 +755,22 @@ function renderHome() {
     const items = insights.map(i => `
       <div class="insight-item">
         <div class="insight-icon">${i.icon}</div>
-        <div class="insight-text">${i.text}</div>
+        <div class="insight-text">
+          ${i.text}
+          ${i.reason ? `<div style="margin-top:6px;padding:6px 8px;background:rgba(79,110,247,.08);border-radius:6px;font-size:12px;color:var(--accent)">💬 ${i.reason}</div>` : ''}
+        </div>
       </div>
     `).join('');
     document.getElementById('aiInsights').innerHTML = `
       <div class="card">
-        <div class="card-title">AI 分析</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div class="card-title" style="margin-bottom:0">AI 陪跑教練</div>
+          <span style="font-size:11px;color:var(--muted)">分析僅供參考</span>
+        </div>
         ${items}
+        <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);text-align:center">
+          AI 提供分析與理由，所有投資決策由你自己決定。
+        </div>
       </div>
     `;
   } else {
@@ -991,11 +1005,11 @@ function renderSettings() {
       <div class="card-title">關於</div>
       <div class="insight-item">
         <div class="insight-icon">✦</div>
-        <div class="insight-text"><strong>AI Investment OS Lite v1.0</strong><br>專為小資族設計的投資紀律助理。<br>每天 3 分鐘，建立長期投資習慣。</div>
+        <div class="insight-text"><strong>AI Investment OS Lite v1.0</strong><br>一位陪伴小資族建立投資紀律的 AI 陪跑教練。<br>不是選股工具，不報明牌，不替你下決定。<br>每天 3 分鐘，陪你慢慢累積第一桶金。</div>
       </div>
       <div class="insight-item">
         <div class="insight-icon">⚠️</div>
-        <div class="insight-text">本工具僅供紀錄與參考，<strong>不構成投資建議</strong>。投資決策請自行判斷，並承擔相應風險。</div>
+        <div class="insight-text">AI 提供分析與提醒，<strong>不構成任何投資建議</strong>。<br>所有投資決策由使用者自行判斷並承擔責任。<br>投資一定有風險，過去績效不代表未來結果。</div>
       </div>
     </div>
     <div class="card">
@@ -1034,8 +1048,8 @@ function addTransaction() {
   const price = parseFloat(document.getElementById('txPrice').value);
   const date = document.getElementById('txDate').value;
   const note = document.getElementById('txNote').value.trim();
-
   if (!symbol || !name || !shares || !price || !date) { showToast('請填寫所有必要欄位'); return; }
+  if (!note) { showToast('請填寫這次交易的理由，這是建立紀律的關鍵'); return; }
   if (shares <= 0 || price <= 0) { showToast('股數與價格須大於 0'); return; }
 
   const tx = { id: uid(), date, symbol, name, type, shares, price, note };
