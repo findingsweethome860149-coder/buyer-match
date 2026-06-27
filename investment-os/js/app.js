@@ -389,6 +389,18 @@ const App = (() => {
 
   // ─── Settings actions ─────────────────────────────────────────────────────
 
+  function toggleDarkMode(isDark) {
+    document.body.classList.toggle('light', !isDark);
+    const s = getSettings();
+    s.darkMode = isDark;
+    saveSettings(s);
+  }
+
+  function _applyDarkMode() {
+    const s = getSettings();
+    document.body.classList.toggle('light', s.darkMode === false);
+  }
+
   function toggleAiBrief() {
     const el = document.getElementById('aiBriefDetail');
     if (!el) return;
@@ -596,6 +608,8 @@ const App = (() => {
   // ─── Init ──────────────────────────────────────────────────────────────────
 
   function init() {
+    _applyDarkMode();
+
     // Header date
     const now  = new Date();
     const DAYS = ['日','一','二','三','四','五','六'];
@@ -731,6 +745,7 @@ const App = (() => {
     openUpdatePrice,
     confirmUpdatePrice,
     editSetting,
+    toggleDarkMode,
     exportData,
     importData,
     clearAllData,

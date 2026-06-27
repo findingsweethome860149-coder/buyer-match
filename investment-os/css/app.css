@@ -1,3 +1,4 @@
+/* ── Dark mode (default) ── */
 :root {
   --bg:      #0f1117;
   --surface: #1a1d27;
@@ -13,6 +14,24 @@
   --radius:  12px;
   --radius-sm: 8px;
 }
+
+/* ── Light mode ── */
+body.light {
+  --bg:      #f5f6fa;
+  --surface: #ffffff;
+  --surface2:#f0f1f7;
+  --border:  #e0e2ef;
+  --accent:  #4f6ef7;
+  --accent2: #7c5cfc;
+  --green:   #16a34a;
+  --red:     #dc2626;
+  --yellow:  #ca8a04;
+  --text:    #1a1d27;
+  --muted:   #6b7280;
+}
+
+/* Ensure toast is readable in light mode */
+body.light .toast { background: #1a1d27; color: #fff; }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -424,3 +443,19 @@ select.form-input { cursor: pointer; }
   80%     { transform: translateX(6px); }
 }
 .pin-shake { animation: pinShake .45s ease; }
+
+/* ── Toggle switch ── */
+.toggle-switch { position: relative; display: inline-block; cursor: pointer; }
+.toggle-switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+.toggle-track {
+  display: block; width: 48px; height: 28px; border-radius: 14px;
+  background: var(--border); transition: background .2s;
+}
+.toggle-switch input:checked + .toggle-track { background: var(--accent); }
+.toggle-thumb {
+  position: absolute; top: 3px; left: 3px;
+  width: 22px; height: 22px; border-radius: 50%;
+  background: #fff; transition: transform .2s;
+  box-shadow: 0 1px 4px rgba(0,0,0,.25);
+}
+.toggle-switch input:checked + .toggle-track .toggle-thumb { transform: translateX(20px); }

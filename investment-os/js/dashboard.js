@@ -372,7 +372,20 @@ const DashboardModule = (() => {
 
   function renderSettings({ settings }) {
     const pinEnabled = SecurityModule.isPINEnabled();
+    const isDark     = settings.darkMode !== false; // default dark
     document.getElementById('settingsView').innerHTML = `
+      <div class="card">
+        <div class="card-title">顯示</div>
+        <div class="setting-row">
+          <span class="setting-label">深色模式</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="darkModeToggle" ${isDark ? 'checked' : ''}
+              onchange="App.toggleDarkMode(this.checked)">
+            <span class="toggle-track"><span class="toggle-thumb"></span></span>
+          </label>
+        </div>
+      </div>
+
       <div class="card">
         <div class="card-title">投資目標</div>
         <div class="setting-row">
