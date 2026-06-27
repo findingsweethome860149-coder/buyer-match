@@ -88,6 +88,16 @@ const DB = (() => {
     save(g) { _set('goal', g); },
   };
 
+  // ── Repository: Dividends ────────────────────────────────────────────────
+
+  const Dividends = {
+    getAll()   { return _get('dividends', []); },
+    save(list) { _set('dividends', list); },
+    add(d)     { const all = this.getAll(); all.push(d); this.save(all); },
+    remove(id) { this.save(this.getAll().filter(d => d.id !== id)); },
+    getByStockId(sid) { return this.getAll().filter(d => d.stockId === sid); },
+  };
+
   // ── Repository: AI Cache ──────────────────────────────────────────────────
 
   const AICache = {
@@ -115,6 +125,7 @@ const DB = (() => {
       exportedAt:   new Date().toISOString(),
       version:      '1.0',
       transactions: Transactions.getAll(),
+      dividends:    Dividends.getAll(),
       watchlist:    Watchlist.getAll(),
       portfolio:    Portfolio.getAll(),
       settings:     Settings.get(),
@@ -129,6 +140,7 @@ const DB = (() => {
     // Snapshot current state for rollback
     const snapshot = {
       transactions: Transactions.getAll(),
+      dividends:    Dividends.getAll(),
       watchlist:    Watchlist.getAll(),
       portfolio:    Portfolio.getAll(),
       settings:     Settings.get(),
@@ -138,6 +150,7 @@ const DB = (() => {
 
     try {
       if (Array.isArray(data.transactions)) Transactions.save(data.transactions);
+      if (Array.isArray(data.dividends))    Dividends.save(data.dividends);
       if (Array.isArray(data.watchlist))    Watchlist.save(data.watchlist);
       if (Array.isArray(data.portfolio))    Portfolio.save(data.portfolio);
       if (data.settings)                    Settings.save(data.settings);
@@ -146,6 +159,7 @@ const DB = (() => {
     } catch (err) {
       // Rollback all writes on partial failure
       Transactions.save(snapshot.transactions);
+      Dividends.save(snapshot.dividends);
       Watchlist.save(snapshot.watchlist);
       Portfolio.save(snapshot.portfolio);
       Settings.save(snapshot.settings);
@@ -163,7 +177,7 @@ const DB = (() => {
 
   return {
     get, set, remove, clear,
-    Transactions, Watchlist, Portfolio,
+    Transactions, Dividends, Watchlist, Portfolio,
     Settings, Goal, AICache, User,
     exportAll, importAll,
   };

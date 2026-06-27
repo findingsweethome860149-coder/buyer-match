@@ -4,8 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0f1117">
 <title>AI Investment OS Lite</title>
+<link rel="manifest" href="manifest.json">
 <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
@@ -237,6 +239,8 @@
         <option value="sell">賣出</option>
         <option value="deposit">入金</option>
         <option value="withdraw">出金</option>
+        <option value="dividend">現金股利</option>
+        <option value="stock_dividend">股票股利</option>
       </select>
     </div>
     <div id="txStockFields">
@@ -250,20 +254,38 @@
           <input class="form-input" id="txName" placeholder="例：台灣50">
         </div>
       </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">股數（支援零股）</label>
-          <input class="form-input" id="txShares" type="number" placeholder="例：100" min="0.001" step="any">
+      <!-- Buy/Sell only fields -->
+      <div id="txTradeFields">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">股數（支援零股）</label>
+            <input class="form-input" id="txShares" type="number" placeholder="例：100" min="0.001" step="any">
+          </div>
+          <div class="form-group">
+            <label class="form-label">成交價格（元）</label>
+            <input class="form-input" id="txPrice" type="number" placeholder="例：185" step="0.01" min="0">
+          </div>
         </div>
         <div class="form-group">
-          <label class="form-label">成交價格（元）</label>
-          <input class="form-input" id="txPrice" type="number" placeholder="例：185" step="0.01" min="0">
+          <label class="form-label">手續費（元）</label>
+          <input class="form-input" id="txFee" type="number" placeholder="自動計算，可手動修改" step="1" min="0">
+          <div class="form-hint">系統自動計算，可手動修改。賣出另計 0.3% 證交稅。</div>
         </div>
       </div>
-      <div class="form-group">
-        <label class="form-label">手續費（元）</label>
-        <input class="form-input" id="txFee" type="number" placeholder="自動計算，可手動修改" step="1" min="0">
-        <div class="form-hint">系統自動計算，可手動修改。賣出另計 0.3% 證交稅。</div>
+      <!-- Dividend only fields -->
+      <div id="txDivCashField" style="display:none">
+        <div class="form-group">
+          <label class="form-label">現金股利金額（元）</label>
+          <input class="form-input" id="txDivCash" type="number" placeholder="例：1500" min="0.01" step="0.01">
+          <div class="form-hint">每股股利 × 持有股數</div>
+        </div>
+      </div>
+      <div id="txDivSharesField" style="display:none">
+        <div class="form-group">
+          <label class="form-label">股票股利股數</label>
+          <input class="form-input" id="txDivShares" type="number" placeholder="例：10.5" min="0.001" step="any">
+          <div class="form-hint">配發股數將以成本 $0 加入持股（FIFO）</div>
+        </div>
       </div>
     </div>
     <div id="txCashFields" style="display:none">
@@ -276,21 +298,23 @@
       <label class="form-label">日期</label>
       <input class="form-input" id="txDate" type="date">
     </div>
-    <div class="form-group">
-      <label class="form-label">買進理由（選填）</label>
-      <select class="form-input" id="txThesisSelect" onchange="App.onThesisChange(this.value)">
-        <option value="">— 選擇理由 —</option>
-        <option value="長期投資">長期投資</option>
-        <option value="高殖利率">高殖利率</option>
-        <option value="成長股">成長股</option>
-        <option value="價值投資">價值投資</option>
-        <option value="AI觀察">AI觀察</option>
-        <option value="自訂">自訂…</option>
-      </select>
-      <div id="txReasonCustomWrap" style="display:none;margin-top:6px">
-        <input class="form-input" id="txReasonCustom" placeholder="請輸入自訂理由">
+    <div id="txThesisWrap">
+      <div class="form-group">
+        <label class="form-label">買進理由（選填）</label>
+        <select class="form-input" id="txThesisSelect" onchange="App.onThesisChange(this.value)">
+          <option value="">— 選擇理由 —</option>
+          <option value="長期投資">長期投資</option>
+          <option value="高殖利率">高殖利率</option>
+          <option value="成長股">成長股</option>
+          <option value="價值投資">價值投資</option>
+          <option value="AI觀察">AI觀察</option>
+          <option value="自訂">自訂…</option>
+        </select>
+        <div id="txReasonCustomWrap" style="display:none;margin-top:6px">
+          <input class="form-input" id="txReasonCustom" placeholder="請輸入自訂理由">
+        </div>
+        <div class="form-hint">記錄理由有助於建立投資紀律，建議填寫。</div>
       </div>
-      <div class="form-hint">記錄理由有助於建立投資紀律，建議填寫。</div>
     </div>
     <div class="form-group">
       <label class="form-label">備註（選填）</label>
@@ -414,6 +438,11 @@
 
   // Boot
   App.init();
+
+  // PWA Service Worker
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  }
 </script>
 </body>
 </html>

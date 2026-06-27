@@ -98,13 +98,16 @@ const PortfolioModule = (() => {
   }
 
   function getCashBalance(transactions) {
-    return (transactions || TransactionModule.getAll()).reduce((bal, tx) => {
+    const txBal = (transactions || TransactionModule.getAll()).reduce((bal, tx) => {
       if (tx.type === 'deposit')  return bal + tx.cashAmt;
       if (tx.type === 'withdraw') return bal - tx.cashAmt;
       if (tx.type === 'buy')      return bal - (tx.quantity * tx.price + (tx.fee || 0));
       if (tx.type === 'sell')     return bal + (tx.quantity * tx.price - (tx.fee || 0) - (tx.tax || 0));
       return bal;
     }, 0);
+    // Cash dividends add to cash balance
+    const divBal = DB.Dividends.getAll().reduce((s, d) => s + (d.cashAmount || 0), 0);
+    return txBal + divBal;
   }
 
   function getRealizedPnL(transactions) {
@@ -117,6 +120,42 @@ const PortfolioModule = (() => {
     return getCashBalance(transactions) + getMarketValue();
   }
 
+  function getDividendTotal() {
+    return DB.Dividends.getAll().reduce((s, d) => s + (d.cashAmount || 0), 0);
+  }
+
+  /**
+   * XIRR — annualised return based on cash flows (deposits/withdrawals/dividends)
+   * and current portfolio value.
+   */
+  function getXIRR(transactions) {
+    const txs  = transactions || TransactionModule.getAll();
+    const divs = DB.Dividends.getAll();
+
+    const flows = [];
+
+    // Deposits are outflows (you spend money), withdrawals are inflows (you take money back)
+    txs.forEach(tx => {
+      if (tx.type === 'deposit')  flows.push({ date: tx.date, amount: -tx.cashAmt });
+      if (tx.type === 'withdraw') flows.push({ date: tx.date, amount:  tx.cashAmt });
+    });
+
+    // Cash dividends are inflows
+    divs.forEach(d => {
+      if (d.cashAmount) flows.push({ date: d.date, amount: d.cashAmount });
+    });
+
+    if (flows.length === 0) return null;
+
+    // Current portfolio value is the final inflow at today's date
+    const totalAssets = getTotalAssets(txs);
+    if (totalAssets <= 0) return null;
+    flows.push({ date: Utils.today(), amount: totalAssets });
+
+    flows.sort((a, b) => a.date.localeCompare(b.date));
+    return Utils.xirr(flows);
+  }
+
   return {
     getHoldings,
     recalculate,
@@ -127,5 +166,7 @@ const PortfolioModule = (() => {
     getCashBalance,
     getRealizedPnL,
     getTotalAssets,
+    getDividendTotal,
+    getXIRR,
   };
 })();

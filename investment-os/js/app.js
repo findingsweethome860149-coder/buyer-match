@@ -88,19 +88,21 @@ const App = (() => {
       DashboardModule.renderPortfolio({
         holdings,
         watchlist,
-        transactions: txs,
-        cash:         PortfolioModule.getCashBalance(txs),
-        unrealized:   PortfolioModule.getUnrealizedPnL(),
-        unrealPct:    _unrealPct(holdings),
-        realized:     PortfolioModule.getRealizedPnL(txs),
-        totalAssets:  PortfolioModule.getTotalAssets(txs),
-        todayPnL:     PortfolioModule.getTodayPnL(),
+        transactions:   txs,
+        cash:           PortfolioModule.getCashBalance(txs),
+        unrealized:     PortfolioModule.getUnrealizedPnL(),
+        unrealPct:      _unrealPct(holdings),
+        realized:       PortfolioModule.getRealizedPnL(txs),
+        totalAssets:    PortfolioModule.getTotalAssets(txs),
+        todayPnL:       PortfolioModule.getTodayPnL(),
         thesisMap,
+        dividendTotal:  PortfolioModule.getDividendTotal(),
+        xirr:           PortfolioModule.getXIRR(txs),
       });
     } else if (_page === 'watchlist') {
       DashboardModule.renderWatchlist({ watchlist });
     } else if (_page === 'history') {
-      DashboardModule.renderHistory({ transactions: txs });
+      DashboardModule.renderHistory({ transactions: txs, dividends: TransactionModule.getAllDividends() });
     } else if (_page === 'settings') {
       DashboardModule.renderSettings({ settings, pinEnabled: SecurityModule.isPINEnabled() });
     }
@@ -122,7 +124,7 @@ const App = (() => {
       const date = document.getElementById('txDate').value;
       if (!date) { NotificationModule.toast('請選擇日期'); return; }
 
-      const LABEL = { buy:'買入', sell:'賣出', deposit:'入金', withdraw:'出金' };
+      const LABEL = { buy:'買入', sell:'賣出', deposit:'入金', withdraw:'出金', dividend:'股利', stock_dividend:'股票股利' };
 
       if (type === 'deposit' || type === 'withdraw') {
         const cashAmt = parseFloat(document.getElementById('txCashAmt').value);
@@ -135,6 +137,32 @@ const App = (() => {
         document.getElementById('txConfirmBody').innerHTML = `
           <div class="insight-item"><div class="insight-icon">${type === 'deposit' ? '💰' : '💸'}</div>
           <div class="insight-text"><strong>${LABEL[type]}</strong><br>金額：$${Utils.fmt(cashAmt)}<br>日期：${date}</div></div>`;
+        closeModal('modalTx');
+        openModal('modalTxConfirm');
+        return;
+      }
+
+      // Dividend flow
+      if (type === 'dividend' || type === 'stock_dividend') {
+        const stockId   = document.getElementById('txSymbol').value.trim().toUpperCase();
+        const stockName = document.getElementById('txName').value.trim();
+        const memo      = document.getElementById('txNote').value.trim();
+        if (!stockId) { NotificationModule.toast('請填寫股票代號'); return; }
+        let cashAmount = 0, stockShares = 0;
+        if (type === 'dividend') {
+          cashAmount = parseFloat(document.getElementById('txDivCash').value) || 0;
+          if (cashAmount <= 0) { NotificationModule.toast('請輸入現金股利金額'); return; }
+        } else {
+          stockShares = parseFloat(document.getElementById('txDivShares').value) || 0;
+          if (stockShares <= 0) { NotificationModule.toast('請輸入股票股利股數'); return; }
+        }
+        _pendingTx = { type, date, stockId, stockName, cashAmount, stockShares, memo };
+        const parts = [];
+        if (cashAmount)  parts.push(`現金股利 $${Utils.fmt(cashAmount)}`);
+        if (stockShares) parts.push(`股票股利 ${Utils.fmt(stockShares, 3)} 股`);
+        document.getElementById('txConfirmBody').innerHTML = `
+          <div class="insight-item"><div class="insight-icon">💵</div>
+          <div class="insight-text"><strong>股利 ${stockId} ${stockName}</strong><br>${parts.join('、')}<br>日期：${date}</div></div>`;
         closeModal('modalTx');
         openModal('modalTxConfirm');
         return;
@@ -202,6 +230,38 @@ const App = (() => {
         return;
       }
 
+      if (tx.type === 'dividend' || tx.type === 'stock_dividend') {
+        const div = TransactionModule.addDividend({
+          stockId:     tx.stockId,
+          stockName:   tx.stockName,
+          date:        tx.date,
+          cashAmount:  tx.cashAmount || 0,
+          stockShares: tx.stockShares || 0,
+          memo:        tx.memo,
+        });
+        // Stock dividends increase holdings via recalculate
+        if (tx.stockShares > 0) {
+          // Add as a synthetic 0-price buy to FIFO pool
+          TransactionModule.add({
+            type: 'buy', date: tx.date,
+            stockId: tx.stockId, stockName: tx.stockName,
+            quantity: tx.stockShares, price: 0, fee: 0, tax: 0, total: 0,
+            thesis: '股票股利', memo: `股票股利 ${tx.stockShares}股`,
+          });
+          PortfolioModule.recalculate(TransactionModule.getAll());
+        }
+        SecurityModule.log('dividend', `${tx.stockId} 股利`);
+        _pendingTx = null;
+        closeModal('modalTxConfirm');
+        _clearTxForm();
+        const parts = [];
+        if (tx.cashAmount)  parts.push(`現金股利 $${Utils.fmt(tx.cashAmount)}`);
+        if (tx.stockShares) parts.push(`股票股利 ${Utils.fmt(tx.stockShares, 3)} 股`);
+        NotificationModule.toast(`${tx.stockId} ${parts.join('、')} 已記錄`);
+        _safeRender();
+        return;
+      }
+
       // Calculate realized P&L for sells
       if (tx.type === 'sell') {
         const h = PortfolioModule.getHoldings().find(x => x.stockId === tx.stockId);
@@ -218,6 +278,18 @@ const App = (() => {
       _safeRender();
     } catch {
       NotificationModule.toast('新增交易失敗，請稍後再試。資料未遺失。');
+    }
+  }
+
+  function deleteDividend(id) {
+    if (!confirm('確定刪除此筆股利記錄？')) return;
+    try {
+      TransactionModule.removeDividend(id);
+      SecurityModule.log('deleteDividend', id);
+      NotificationModule.toast('股利記錄已刪除');
+      _safeRender();
+    } catch {
+      NotificationModule.toast('刪除失敗，請稍後再試。');
     }
   }
 
@@ -356,18 +428,34 @@ const App = (() => {
     const type = document.querySelector('.hist-filter-btn.selected')?.dataset.type || 'all';
     const sort = document.querySelector('.hist-sort-btn.selected')?.dataset.sort || 'date-desc';
 
-    let list = cache.list;
-    if (q) list = list.filter(t =>
-      (t.stockId   || '').toLowerCase().includes(q) ||
-      (t.stockName || '').toLowerCase().includes(q) ||
-      (t.date      || '').includes(q));
-    if (type !== 'all') list = list.filter(t => t.type === type);
-    if (sort === 'date-asc')    list = [...list].sort((a, b) => a.date.localeCompare(b.date));
+    let list    = cache.list;
+    let divList = cache.divList || [];
+
+    if (q) {
+      list    = list.filter(t =>
+        (t.stockId   || '').toLowerCase().includes(q) ||
+        (t.stockName || '').toLowerCase().includes(q) ||
+        (t.date      || '').includes(q));
+      divList = divList.filter(d =>
+        (d.stockId   || '').toLowerCase().includes(q) ||
+        (d.stockName || '').toLowerCase().includes(q) ||
+        (d.date      || '').includes(q));
+    }
+
+    if (type === 'dividend') {
+      list = [];
+    } else if (type !== 'all') {
+      list    = list.filter(t => t.type === type);
+      divList = [];
+    }
+
+    if (sort === 'date-asc')  list = [...list].sort((a, b) => a.date.localeCompare(b.date));
     else if (sort === 'date-desc') list = [...list].sort((a, b) => b.date.localeCompare(a.date));
     else if (sort === 'amt-desc')  list = [...list].sort((a, b) => (b.quantity*b.price||b.cashAmt||0) - (a.quantity*a.price||a.cashAmt||0));
 
+    const divRows = cache.divRowFn ? cache.divRowFn(divList) : '';
     const card = document.getElementById('historyRows');
-    if (card) card.innerHTML = `<div class="card-title">所有交易</div>${cache.rowFn(list) || '<div style="padding:16px;color:var(--muted);text-align:center">找不到符合的紀錄</div>'}`;
+    if (card) card.innerHTML = `<div class="card-title">所有交易</div>${cache.rowFn(list)}${divRows ? `<div style="border-top:1px solid var(--border);margin:4px 0 8px"></div>${divRows}` : ''}${!cache.rowFn(list) && !divRows ? '<div style="padding:16px;color:var(--muted);text-align:center">找不到符合的紀錄</div>' : ''}`;
   }
 
   function removeWatch(id) {
@@ -908,12 +996,21 @@ const App = (() => {
   }
 
   function _onTxTypeChange() {
-    const type   = document.getElementById('txType').value;
-    const isCash = type === 'deposit' || type === 'withdraw';
-    document.getElementById('txStockFields').style.display = isCash ? 'none' : '';
-    document.getElementById('txCashFields').style.display  = isCash ? '' : 'none';
+    const type      = document.getElementById('txType').value;
+    const isCash    = type === 'deposit' || type === 'withdraw';
+    const isDivCash = type === 'dividend';
+    const isDivStk  = type === 'stock_dividend';
+    const isDiv     = isDivCash || isDivStk;
+
+    document.getElementById('txStockFields').style.display    = (isCash) ? 'none' : '';
+    document.getElementById('txCashFields').style.display     = isCash ? '' : 'none';
+    document.getElementById('txTradeFields').style.display    = (isDiv || isCash) ? 'none' : '';
+    document.getElementById('txDivCashField').style.display   = isDivCash ? '' : 'none';
+    document.getElementById('txDivSharesField').style.display = isDivStk  ? '' : 'none';
+    document.getElementById('txThesisWrap').style.display     = isDiv ? 'none' : '';
+
     document.getElementById('modalTxTitle').textContent =
-      { buy:'買入交易', sell:'賣出交易', deposit:'入金', withdraw:'出金' }[type];
+      { buy:'買入交易', sell:'賣出交易', deposit:'入金', withdraw:'出金', dividend:'現金股利', stock_dividend:'股票股利' }[type] || '新增交易';
   }
 
   function _autoCalcFee() {
@@ -939,8 +1036,8 @@ const App = (() => {
   }
 
   function _clearTxForm() {
-    ['txSymbol','txName','txShares','txPrice','txFee','txCashAmt','txReasonCustom','txNote']
-      .forEach(id => { document.getElementById(id).value = ''; });
+    ['txSymbol','txName','txShares','txPrice','txFee','txCashAmt','txDivCash','txDivShares','txReasonCustom','txNote']
+      .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
     const sel = document.getElementById('txThesisSelect');
     if (sel) sel.value = '';
     const wrap = document.getElementById('txReasonCustomWrap');
@@ -953,6 +1050,7 @@ const App = (() => {
     submitTransaction,
     confirmTransaction,
     deleteTx,
+    deleteDividend,
     addWatch,
     removeWatch,
     toggleAiBrief,

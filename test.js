@@ -146,10 +146,11 @@ console.log('\n[8] Backup format — exportAll fields');
 {
   const { readFileSync } = await import('fs');
   const db = readFileSync('/home/user/buyer-match/investment-os/js/db.js', 'utf8');
-  ['transactions','watchlist','portfolio','settings','goal','user','exportedAt','version']
+  ['transactions','dividends','watchlist','portfolio','settings','goal','user','exportedAt','version']
     .forEach(field => ok(`exportAll includes ${field}`, db.includes(field)));
   ok('importAll has rollback', db.includes('Rollback') || db.includes('rollback') || db.includes('snapshot'));
   ok('version check in importAll', db.includes("'1.0'") || db.includes('"1.0"'));
+  ok('Dividends repository', db.includes('Dividends'));
 }
 
 // 9. AI Module
@@ -172,6 +173,57 @@ console.log('\n[10] Security Module — PIN constants');
   ok('FNV-1a hash present',   sec.includes('FNV') || sec.includes('fnv') || sec.includes('2166136261'));
   ok('isPINEnabled exported', sec.includes('isPINEnabled'));
   ok('disablePIN exported',   sec.includes('disablePIN'));
+}
+
+// 11. Sprint 9 — Dividend, XIRR, PWA
+console.log('\n[11] Sprint 9 — Dividends, XIRR, PWA');
+{
+  const { readFileSync, existsSync } = await import('fs');
+
+  // XIRR in utils.js
+  const utils = readFileSync('/home/user/buyer-match/investment-os/js/utils.js', 'utf8');
+  ok('xirr function in utils.js', utils.includes('function xirr'));
+  ok('xirr exported', utils.includes('xirr'));
+
+  // Dividend in transaction.js
+  const tx = readFileSync('/home/user/buyer-match/investment-os/js/transaction.js', 'utf8');
+  ok('addDividend in transaction.js', tx.includes('addDividend'));
+  ok('removeDividend in transaction.js', tx.includes('removeDividend'));
+  ok('getAllDividends exported', tx.includes('getAllDividends'));
+
+  // Portfolio XIRR + dividend
+  const port = readFileSync('/home/user/buyer-match/investment-os/js/portfolio.js', 'utf8');
+  ok('getDividendTotal in portfolio.js', port.includes('getDividendTotal'));
+  ok('getXIRR in portfolio.js', port.includes('getXIRR'));
+
+  // app.js dividend flow
+  const app = readFileSync('/home/user/buyer-match/investment-os/js/app.js', 'utf8');
+  ok('dividend type in app.js submitTransaction', app.includes("type === 'dividend'"));
+  ok('stock_dividend type in app.js', app.includes("type === 'stock_dividend'"));
+  ok('deleteDividend exported', app.includes('deleteDividend'));
+  ok('txDivCash in _clearTxForm', app.includes('txDivCash'));
+
+  // index.html dividend options
+  const html = readFileSync('/home/user/buyer-match/investment-os/index.html', 'utf8');
+  ok('dividend option in txType', html.includes('value="dividend"'));
+  ok('stock_dividend option in txType', html.includes('value="stock_dividend"'));
+  ok('txDivCashField in HTML', html.includes('txDivCashField'));
+  ok('txDivSharesField in HTML', html.includes('txDivSharesField'));
+  ok('txThesisWrap in HTML', html.includes('txThesisWrap'));
+
+  // PWA
+  ok('manifest.json exists', existsSync('/home/user/buyer-match/investment-os/manifest.json'));
+  ok('sw.js exists', existsSync('/home/user/buyer-match/investment-os/sw.js'));
+  ok('icon-192.png exists', existsSync('/home/user/buyer-match/investment-os/icons/icon-192.png'));
+  ok('icon-512.png exists', existsSync('/home/user/buyer-match/investment-os/icons/icon-512.png'));
+  ok('<link rel="manifest"> in HTML', html.includes('rel="manifest"'));
+  ok('serviceWorker.register in HTML', html.includes('serviceWorker.register'));
+
+  // XIRR in dashboard.js
+  const dash = readFileSync('/home/user/buyer-match/investment-os/js/dashboard.js', 'utf8');
+  ok('XIRR shown in portfolio view', dash.includes('XIRR'));
+  ok('dividendTotal shown in portfolio view', dash.includes('dividendTotal'));
+  ok('stock_dividend filter support', dash.includes('chip-green') && dash.includes('股利'));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

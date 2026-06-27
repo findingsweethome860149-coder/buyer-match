@@ -44,5 +44,23 @@ const TransactionModule = (() => {
     return DB.Transactions.getByType(type);
   }
 
-  return { getAll, add, remove, getByStockId, getByType };
+  // ── Dividend helpers ───────────────────────────────────────────────────────
+
+  function addDividend(div) {
+    if (!div.id)        div.id        = Utils.uid();
+    if (!div.date)      div.date      = Utils.today();
+    if (!div.createdAt) div.createdAt = new Date().toISOString();
+    DB.Dividends.add(div);
+    return div;
+  }
+
+  function removeDividend(id) {
+    DB.Dividends.remove(id);
+  }
+
+  function getAllDividends() {
+    return DB.Dividends.getAll();
+  }
+
+  return { getAll, add, remove, getByStockId, getByType, addDividend, removeDividend, getAllDividends };
 })();

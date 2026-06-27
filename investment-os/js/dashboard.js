@@ -183,7 +183,7 @@ const DashboardModule = (() => {
 
   // ── Portfolio ─────────────────────────────────────────────────────────────
 
-  function renderPortfolio({ holdings, watchlist, transactions, cash, unrealized, unrealPct, realized, totalAssets, todayPnL, thesisMap }) {
+  function renderPortfolio({ holdings, watchlist, transactions, cash, unrealized, unrealPct, realized, totalAssets, todayPnL, thesisMap, dividendTotal, xirr }) {
     const el = document.getElementById('portfolioView');
 
     if (holdings.length === 0 && cash === 0) {
@@ -251,6 +251,8 @@ const DashboardModule = (() => {
         <div class="total-row"><span class="total-label">現金餘額</span><span class="${cash < 0 ? 'negative' : ''}">$${Utils.fmt(cash)}</span></div>
         <div class="total-row"><span class="total-label">未實現損益</span><span class="${Utils.pnlCls(unrealized)}">${Utils.pnlSign(unrealized)}$${Utils.fmt(Math.abs(unrealized))} (${Utils.pnlSign(unrealPct)}${Utils.fmt(unrealPct, 2)}%)</span></div>
         <div class="total-row"><span class="total-label">已實現損益</span><span class="${Utils.pnlCls(realized)}">${Utils.pnlSign(realized)}$${Utils.fmt(Math.abs(realized))}</span></div>
+        ${dividendTotal > 0 ? `<div class="total-row"><span class="total-label">累計股利</span><span class="positive">+$${Utils.fmt(dividendTotal)}</span></div>` : ''}
+        ${xirr !== null && xirr !== undefined ? `<div class="total-row"><span class="total-label">年化報酬 (XIRR)</span><span class="${Utils.pnlCls(xirr)}" style="font-weight:700">${Utils.pnlSign(xirr)}${Utils.fmt(xirr * 100, 2)}%</span></div>` : ''}
       </div>
       ${holdings.length > 0 ? `
       <div class="card">
@@ -336,11 +338,12 @@ const DashboardModule = (() => {
 
   // ── History ───────────────────────────────────────────────────────────────
 
-  function renderHistory({ transactions }) {
-    const el = document.getElementById('historyView');
+  function renderHistory({ transactions, dividends }) {
+    const el  = document.getElementById('historyView');
     const txs = [...transactions].sort((a, b) => b.date.localeCompare(a.date));
+    const divs = [...(dividends || [])].sort((a, b) => b.date.localeCompare(a.date));
 
-    if (txs.length === 0) {
+    if (txs.length === 0 && divs.length === 0) {
       el.innerHTML = `<div class="empty"><div class="empty-icon">📋</div>還沒有交易紀錄<br>點 ＋ 新增第一筆交易</div>`;
       return;
     }
@@ -349,6 +352,8 @@ const DashboardModule = (() => {
     const totalWithdraw = txs.filter(t => t.type === 'withdraw').reduce((s, t) => s + t.cashAmt, 0);
     const totalBuyAmt   = txs.filter(t => t.type === 'buy').reduce((s, t) => s + t.quantity * t.price, 0);
     const totalFees     = txs.reduce((s, t) => s + (t.fee || 0), 0);
+    const totalDivCash  = divs.reduce((s, d) => s + (d.cashAmount || 0), 0);
+    const totalDivStock = divs.reduce((s, d) => s + (d.stockShares || 0), 0);
 
     const LABEL = { buy:'買入', sell:'賣出', deposit:'入金', withdraw:'出金' };
     const CHIP  = { buy:'chip-blue', sell:'chip-red', deposit:'chip-green', withdraw:'chip-yellow' };
@@ -382,7 +387,30 @@ const DashboardModule = (() => {
       `;
     }
 
+    function _divRow(d) {
+      const parts = [];
+      if (d.cashAmount) parts.push(`現金股利 $${Utils.fmt(d.cashAmount)}`);
+      if (d.stockShares) parts.push(`股票股利 ${Utils.fmt(d.stockShares, 3)} 股`);
+      return `
+        <div class="tx-row">
+          <div style="flex:1;min-width:0">
+            <div class="tx-date">${d.date}</div>
+            <div class="tx-desc">
+              <span class="chip chip-green">股利</span>
+              ${d.stockId} ${d.stockName || ''}
+            </div>
+            ${d.memo ? `<div style="font-size:12px;color:var(--muted);margin-top:1px">${d.memo}</div>` : ''}
+          </div>
+          <div style="flex-shrink:0;padding-left:12px">
+            <div class="tx-amount positive">${parts.join(' ＋ ')}</div>
+            <button class="btn-sm" onclick="App.deleteDividend('${d.id}')" style="margin-top:6px">刪除</button>
+          </div>
+        </div>
+      `;
+    }
+
     const rows = txs.map(_txRow).join('');
+    const divRows = divs.map(_divRow).join('');
 
     el.innerHTML = `
       <div class="card">
@@ -391,15 +419,18 @@ const DashboardModule = (() => {
         <div class="total-row"><span class="total-label">總出金</span><span class="negative">-$${Utils.fmt(totalWithdraw)}</span></div>
         <div class="total-row"><span class="total-label">總買入金額</span><span>$${Utils.fmt(totalBuyAmt)}</span></div>
         <div class="total-row"><span class="total-label">累計手續費</span><span class="negative">$${Utils.fmt(totalFees)}</span></div>
-        <div class="total-row"><span class="total-label">交易筆數</span><span>${txs.length} 筆</span></div>
+        ${totalDivCash > 0  ? `<div class="total-row"><span class="total-label">累計現金股利</span><span class="positive">+$${Utils.fmt(totalDivCash)}</span></div>` : ''}
+        ${totalDivStock > 0 ? `<div class="total-row"><span class="total-label">累計股票股利</span><span class="positive">+${Utils.fmt(totalDivStock, 3)} 股</span></div>` : ''}
+        <div class="total-row"><span class="total-label">交易筆數</span><span>${txs.length} 筆${divs.length > 0 ? ` ＋ ${divs.length} 筆股利` : ''}</span></div>
       </div>
       <input class="search-bar" id="historySearch" placeholder="搜尋股票代號、名稱或日期…" oninput="App.filterHistory(this.value)">
       <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
-        <button class="btn-sm hist-filter-btn selected" data-type="all"     onclick="App.filterHistoryType('all')">全部</button>
-        <button class="btn-sm hist-filter-btn"          data-type="buy"     onclick="App.filterHistoryType('buy')">買進</button>
-        <button class="btn-sm hist-filter-btn"          data-type="sell"    onclick="App.filterHistoryType('sell')">賣出</button>
-        <button class="btn-sm hist-filter-btn"          data-type="deposit" onclick="App.filterHistoryType('deposit')">入金</button>
+        <button class="btn-sm hist-filter-btn selected" data-type="all"      onclick="App.filterHistoryType('all')">全部</button>
+        <button class="btn-sm hist-filter-btn"          data-type="buy"      onclick="App.filterHistoryType('buy')">買進</button>
+        <button class="btn-sm hist-filter-btn"          data-type="sell"     onclick="App.filterHistoryType('sell')">賣出</button>
+        <button class="btn-sm hist-filter-btn"          data-type="deposit"  onclick="App.filterHistoryType('deposit')">入金</button>
         <button class="btn-sm hist-filter-btn"          data-type="withdraw" onclick="App.filterHistoryType('withdraw')">出金</button>
+        <button class="btn-sm hist-filter-btn"          data-type="dividend" onclick="App.filterHistoryType('dividend')">股利</button>
         <span style="margin-left:auto;display:flex;gap:6px">
           <button class="btn-sm hist-sort-btn selected" data-sort="date-desc" onclick="App.sortHistory('date-desc')">新→舊</button>
           <button class="btn-sm hist-sort-btn"          data-sort="date-asc"  onclick="App.sortHistory('date-asc')">舊→新</button>
@@ -409,10 +440,11 @@ const DashboardModule = (() => {
       <div class="card" id="historyRows">
         <div class="card-title">所有交易</div>
         ${rows}
+        ${divRows ? `<div style="border-top:1px solid var(--border);margin:4px 0 8px"></div>${divRows}` : ''}
       </div>
     `;
 
-    DashboardModule._histCache = { list: txs, rowFn: (list) => list.map(_txRow).join('') };
+    DashboardModule._histCache = { list: txs, divList: divs, rowFn: (list) => list.map(_txRow).join(''), divRowFn: (list) => list.map(_divRow).join('') };
   }
 
   // ── Settings ──────────────────────────────────────────────────────────────
@@ -509,7 +541,7 @@ const DashboardModule = (() => {
         <div class="insight-item">
           <div class="insight-icon">✦</div>
           <div class="insight-text">
-            <strong>AI Investment OS Lite v1.0</strong><br>
+            <strong>AI Investment OS Lite v1.1</strong><br>
             陪伴小資族建立投資紀律的 AI 陪跑教練。<br>
             不報明牌，不替你下決定，不是股票分析軟體。
           </div>
