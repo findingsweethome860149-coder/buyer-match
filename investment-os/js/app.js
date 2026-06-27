@@ -17,17 +17,11 @@ const App = (() => {
   // ─── Settings ──────────────────────────────────────────────────────────────
 
   function getSettings() {
-    return DB.get('settings', {
-      monthlyBudget: 10000,
-      reminderDay: 5,
-      defaultFeeRate: 0.1425,
-      investmentGoal: '',
-      goalAmount: 0,
-    });
+    return DB.Settings.get();
   }
 
   function saveSettings(s) {
-    DB.set('settings', s);
+    DB.Settings.save(s);
   }
 
   // ─── Navigation ────────────────────────────────────────────────────────────
@@ -90,8 +84,8 @@ const App = (() => {
   }
 
   function _unrealPct(holdings) {
-    const cost = holdings.reduce((s, h) => s + h.shares * h.avgCost, 0);
-    const val  = holdings.reduce((s, h) => s + h.shares * (h.currentPrice || h.avgCost), 0);
+    const cost = holdings.reduce((s, h) => s + h.quantity * h.avgCost, 0);
+    const val  = holdings.reduce((s, h) => s + h.quantity * (h.currentPrice || h.avgCost), 0);
     return cost > 0 ? (val - cost) / cost * 100 : 0;
   }
 
@@ -112,8 +106,8 @@ const App = (() => {
         if (!cashAmt || cashAmt <= 0) { NotificationModule.toast('請輸入金額'); return; }
         _pendingTx = {
           type, date, cashAmt,
-          reason: document.getElementById('txReason').value.trim(),
-          note:   document.getElementById('txNote').value.trim(),
+          thesis: document.getElementById('txReason').value.trim(),
+          memo:   document.getElementById('txNote').value.trim(),
         };
         document.getElementById('txConfirmBody').innerHTML = `
           <div class="insight-item"><div class="insight-icon">${type === 'deposit' ? '💰' : '💸'}</div>
@@ -123,30 +117,35 @@ const App = (() => {
         return;
       }
 
-      const symbol = document.getElementById('txSymbol').value.trim().toUpperCase();
-      const name   = document.getElementById('txName').value.trim();
-      const shares = parseFloat(document.getElementById('txShares').value);
-      const price  = parseFloat(document.getElementById('txPrice').value);
-      const fee    = parseFloat(document.getElementById('txFee').value) || 0;
-      const reason = document.getElementById('txReason').value.trim();
-      const note   = document.getElementById('txNote').value.trim();
+      const stockId   = document.getElementById('txSymbol').value.trim().toUpperCase();
+      const stockName = document.getElementById('txName').value.trim();
+      const quantity  = parseFloat(document.getElementById('txShares').value);
+      const price     = parseFloat(document.getElementById('txPrice').value);
+      const fee       = parseFloat(document.getElementById('txFee').value) || 0;
+      const thesis    = document.getElementById('txReason').value.trim();
+      const memo      = document.getElementById('txNote').value.trim();
 
-      if (!symbol || !name) { NotificationModule.toast('請填寫股票代號與名稱'); return; }
-      if (!shares || shares <= 0) { NotificationModule.toast('請填寫股數'); return; }
-      if (!price  || price  <= 0) { NotificationModule.toast('請填寫成交價格'); return; }
+      if (!stockId || !stockName) { NotificationModule.toast('請填寫股票代號與名稱'); return; }
+      if (!quantity || quantity <= 0) { NotificationModule.toast('請填寫股數'); return; }
+      if (!price    || price    <= 0) { NotificationModule.toast('請填寫成交價格'); return; }
 
-      const total = shares * price + (type === 'buy' ? fee : -fee);
-      _pendingTx = { type, date, symbol, name, shares, price, fee, reason, note };
+      const tax   = type === 'sell' ? Math.round(quantity * price * 0.003) : 0;
+      const total = type === 'buy'
+        ? quantity * price + fee
+        : quantity * price - fee - tax;
+
+      _pendingTx = { type, date, stockId, stockName, quantity, price, fee, tax, total, thesis, memo };
 
       document.getElementById('txConfirmBody').innerHTML = `
         <div class="insight-item"><div class="insight-icon">${type === 'buy' ? '📈' : '📉'}</div>
         <div class="insight-text">
-          <strong>${LABEL[type]} ${symbol} ${name}</strong><br>
-          股數：${Utils.fmt(shares)} 股 × $${Utils.fmt(price, 2)}<br>
+          <strong>${LABEL[type]} ${stockId} ${stockName}</strong><br>
+          股數：${Utils.fmt(quantity)} 股 × $${Utils.fmt(price, 2)}<br>
           手續費：$${Utils.fmt(fee)}<br>
+          ${type === 'sell' ? `證交稅：$${Utils.fmt(tax)}<br>` : ''}
           ${type === 'buy' ? '合計支出' : '合計收入'}：<strong>$${Utils.fmt(Math.abs(total))}</strong><br>
           日期：${date}
-          ${reason ? `<br>理由：${reason}` : ''}
+          ${thesis ? `<br>理由：${thesis}` : ''}
         </div></div>`;
       closeModal('modalTx');
       openModal('modalTxConfirm');
@@ -174,17 +173,17 @@ const App = (() => {
 
       // Calculate realized P&L for sells
       if (tx.type === 'sell') {
-        const h = PortfolioModule.getHoldings().find(x => x.symbol === tx.symbol);
-        if (h) tx.realizedPnL = (tx.price - h.avgCost) * tx.shares - tx.fee;
+        const h = PortfolioModule.getHoldings().find(x => x.stockId === tx.stockId);
+        if (h) tx.realizedPnL = (tx.price - h.avgCost) * tx.quantity - tx.fee - (tx.tax || 0);
       }
 
       TransactionModule.add(tx);
       PortfolioModule.recalculate(TransactionModule.getAll());
-      SecurityModule.log(tx.type, `${tx.symbol} ${tx.shares}股 @${tx.price}`);
+      SecurityModule.log(tx.type, `${tx.stockId} ${tx.quantity}股 @${tx.price}`);
       _pendingTx = null;
       closeModal('modalTxConfirm');
       _clearTxForm();
-      NotificationModule.toast(`${tx.type === 'buy' ? '買入' : '賣出'} ${tx.symbol} ${Utils.fmt(tx.shares)} 股已記錄`);
+      NotificationModule.toast(`${tx.type === 'buy' ? '買入' : '賣出'} ${tx.stockId} ${Utils.fmt(tx.quantity)} 股已記錄`);
       _safeRender();
     } catch (err) {
       console.error('confirmTransaction error:', err);
@@ -210,20 +209,20 @@ const App = (() => {
 
   function addWatch() {
     try {
-      const symbol  = document.getElementById('watchSymbol').value.trim().toUpperCase();
-      const name    = document.getElementById('watchName').value.trim();
-      const current = parseFloat(document.getElementById('watchCurrent').value) || 0;
-      const target  = parseFloat(document.getElementById('watchTarget').value) || 0;
-      const note    = document.getElementById('watchNote').value.trim();
+      const stockId   = document.getElementById('watchSymbol').value.trim().toUpperCase();
+      const stockName = document.getElementById('watchName').value.trim();
+      const current   = parseFloat(document.getElementById('watchCurrent').value) || 0;
+      const target    = parseFloat(document.getElementById('watchTarget').value) || 0;
+      const memo      = document.getElementById('watchNote').value.trim();
 
-      if (!symbol || !name) { NotificationModule.toast('請填寫股票代號與名稱'); return; }
+      if (!stockId || !stockName) { NotificationModule.toast('請填寫股票代號與名稱'); return; }
 
-      WatchlistModule.add({ symbol, name, currentPrice: current, targetPrice: target, note });
+      WatchlistModule.add({ stockId, stockName, currentPrice: current, targetPrice: target, memo });
       ['watchSymbol','watchName','watchCurrent','watchTarget','watchNote'].forEach(id => {
         document.getElementById(id).value = '';
       });
       closeModal('modalWatch');
-      NotificationModule.toast(`已加入觀察：${symbol} ${name}`);
+      NotificationModule.toast(`已加入觀察：${stockId} ${stockName}`);
       _safeRender();
     } catch (err) {
       console.error('addWatch error:', err);
@@ -239,13 +238,13 @@ const App = (() => {
     const w = WatchlistModule.getAll().find(x => String(x.id) === String(id));
     if (!w) return;
     _detailWatchId = id;
-    const h = PortfolioModule.getHoldings().find(x => x.symbol === w.symbol);
-    const score = AIModule.scoreStock(w);
-    const sl    = AIModule.scoreLabel(score);
+    const h      = PortfolioModule.getHoldings().find(x => x.stockId === w.stockId);
+    const score  = AIModule.scoreStock(w);
+    const sl     = AIModule.scoreLabel(score);
     const points = AIModule.analyzeStock(w, h);
 
     document.getElementById('stockDetailTitle').innerHTML =
-      `${w.symbol} ${w.name} <span class="score-badge ${sl.cls}">${sl.label}</span>`;
+      `${w.stockId} ${w.stockName} <span class="score-badge ${sl.cls}">${sl.label}</span>`;
     document.getElementById('stockDetailBody').innerHTML = `
       <div style="margin-bottom:12px">
         <div style="font-size:24px;font-weight:800;margin-bottom:2px">$${Utils.fmt(w.currentPrice || 0, 2)}</div>
@@ -276,8 +275,8 @@ const App = (() => {
     openModal('modalTx');
     if (w) {
       setTimeout(() => {
-        document.getElementById('txSymbol').value = w.symbol;
-        document.getElementById('txName').value   = w.name;
+        document.getElementById('txSymbol').value = w.stockId;
+        document.getElementById('txName').value   = w.stockName;
         if (w.currentPrice) document.getElementById('txPrice').value = w.currentPrice;
         document.getElementById('txType').dispatchEvent(new Event('change'));
         document.getElementById('txPrice').dispatchEvent(new Event('input'));
@@ -292,7 +291,7 @@ const App = (() => {
     if (!cache) return;
     const lq   = q.trim().toLowerCase();
     const list = lq
-      ? cache.list.filter(w => w.symbol.toLowerCase().includes(lq) || w.name.toLowerCase().includes(lq))
+      ? cache.list.filter(w => w.stockId.toLowerCase().includes(lq) || w.stockName.toLowerCase().includes(lq))
       : cache.list;
     const card = document.getElementById('watchlistRows');
     if (card) card.innerHTML = `<div class="card-title">觀察清單 <span style="font-size:11px;color:var(--muted)">點股票看分析 · 點價格更新</span></div>${cache.rows(list)}`;
@@ -323,13 +322,13 @@ const App = (() => {
 
     let list = cache.list;
     if (q) list = list.filter(t =>
-      (t.symbol || '').toLowerCase().includes(q) ||
-      (t.name   || '').toLowerCase().includes(q) ||
-      (t.date   || '').includes(q));
+      (t.stockId   || '').toLowerCase().includes(q) ||
+      (t.stockName || '').toLowerCase().includes(q) ||
+      (t.date      || '').includes(q));
     if (type !== 'all') list = list.filter(t => t.type === type);
     if (sort === 'date-asc')    list = [...list].sort((a, b) => a.date.localeCompare(b.date));
     else if (sort === 'date-desc') list = [...list].sort((a, b) => b.date.localeCompare(a.date));
-    else if (sort === 'amt-desc')  list = [...list].sort((a, b) => (b.shares*b.price||b.cashAmt||0) - (a.shares*a.price||a.cashAmt||0));
+    else if (sort === 'amt-desc')  list = [...list].sort((a, b) => (b.quantity*b.price||b.cashAmt||0) - (a.quantity*a.price||a.cashAmt||0));
 
     const card = document.getElementById('historyRows');
     if (card) card.innerHTML = `<div class="card-title">所有交易</div>${cache.rowFn(list) || '<div style="padding:16px;color:var(--muted);text-align:center">找不到符合的紀錄</div>'}`;
@@ -352,7 +351,7 @@ const App = (() => {
     const items = ctx === 'portfolio' ? PortfolioModule.getHoldings() : WatchlistModule.getAll();
     const item  = items.find(i => String(i.id) === String(id));
     if (!item) return;
-    document.getElementById('updatePriceTitle').textContent = `更新現價：${item.symbol} ${item.name}`;
+    document.getElementById('updatePriceTitle').textContent = `更新現價：${item.stockId || item.id} ${item.stockName || ''}`;
     document.getElementById('updatePriceValue').value = item.currentPrice || '';
     document.getElementById('updatePriceId').value = id;
     document.getElementById('updatePriceCtx').value = ctx;
@@ -391,11 +390,11 @@ const App = (() => {
     if (btn) btn.textContent = open ? '收起 ‹' : '查看原因 ›';
   }
 
-  function viewHoldingHistory(symbol) {
+  function viewHoldingHistory(stockId) {
     navigate('history');
     setTimeout(() => {
       const input = document.getElementById('historySearch');
-      if (input) { input.value = symbol; filterHistory(symbol); }
+      if (input) { input.value = stockId; filterHistory(stockId); }
     }, 100);
   }
 
@@ -420,22 +419,45 @@ const App = (() => {
 
   function exportData() {
     try {
-      const data = {
-        exportedAt:   new Date().toISOString(),
-        portfolio:    PortfolioModule.getHoldings(),
-        watchlist:    WatchlistModule.getAll(),
-        transactions: TransactionModule.getAll(),
-        settings:     getSettings(),
-      };
+      const data = DB.exportAll();
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = `investment-os-${Utils.today()}.json`;
+      a.download = `aios-backup-${Utils.today()}.json`;
       a.click();
       SecurityModule.log('exportData', Utils.today());
     } catch (err) {
       console.error('exportData error:', err);
       NotificationModule.toast('匯出失敗，請稍後再試。');
+    }
+  }
+
+  function importData() {
+    try {
+      const input = document.createElement('input');
+      input.type   = 'file';
+      input.accept = '.json';
+      input.onchange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          try {
+            const data = JSON.parse(ev.target.result);
+            DB.importAll(data);
+            SecurityModule.log('importData', file.name);
+            NotificationModule.toast('資料匯入成功，重新載入中…');
+            setTimeout(() => location.reload(), 1200);
+          } catch (err) {
+            NotificationModule.toast('匯入失敗：' + err.message);
+          }
+        };
+        reader.readAsText(file);
+      };
+      input.click();
+    } catch (err) {
+      console.error('importData error:', err);
+      NotificationModule.toast('匯入失敗，請稍後再試。');
     }
   }
 
@@ -464,7 +486,6 @@ const App = (() => {
 
   function nextOnboard() {
     if (_obStep === 1) {
-      // Validate goal selection
       if (!_obGoal) { NotificationModule.toast('請選擇你的投資目標'); return; }
       let goal = _obGoal;
       if (goal === '自訂目標') {
@@ -475,7 +496,6 @@ const App = (() => {
       s.investmentGoal = goal;
       saveSettings(s);
 
-      // Update ready screen to show chosen goal
       document.getElementById('ob_ready_desc').innerHTML =
         `目標：<strong>${goal}</strong><br><br>` +
         `接下來你可以：<br><br>` +
@@ -548,7 +568,7 @@ const App = (() => {
       m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
     });
 
-    // Global error boundary — prevent silent failures
+    // Global error boundary
     window.addEventListener('error', (e) => {
       console.error('Uncaught error:', e.error);
       NotificationModule.toast('發生錯誤，請重新整理頁面。資料已自動保存。');
@@ -608,6 +628,7 @@ const App = (() => {
     confirmUpdatePrice,
     editSetting,
     exportData,
+    importData,
     clearAllData,
     selectGoal,
     nextOnboard,

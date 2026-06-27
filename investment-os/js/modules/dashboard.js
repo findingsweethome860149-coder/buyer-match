@@ -102,8 +102,8 @@ const DashboardModule = (() => {
           return `
             <div class="watch-row" onclick="App.openStockDetail('${w.id}')" style="cursor:pointer;padding:8px 0">
               <div>
-                <span style="font-size:15px;font-weight:700">${w.symbol}</span>
-                <span style="font-size:12px;color:var(--muted);margin-left:5px">${w.name}</span>
+                <span style="font-size:15px;font-weight:700">${w.stockId}</span>
+                <span style="font-size:12px;color:var(--muted);margin-left:5px">${w.stockName}</span>
                 ${met ? '<span style="font-size:12px">🎯</span>' : ''}
               </div>
               <div style="text-align:right">
@@ -145,23 +145,23 @@ const DashboardModule = (() => {
       return;
     }
 
-    const totalVal = holdings.reduce((s, x) => s + x.shares * (x.currentPrice || x.avgCost), 0);
+    const totalVal = holdings.reduce((s, x) => s + x.quantity * (x.currentPrice || x.avgCost), 0);
     const holdingRows = holdings.map(h => {
-      const mktVal    = h.shares * (h.currentPrice || h.avgCost);
-      const cost      = h.shares * h.avgCost;
+      const mktVal    = h.quantity * (h.currentPrice || h.avgCost);
+      const cost      = h.quantity * h.avgCost;
       const pnl       = mktVal - cost;
       const pnlPct    = cost > 0 ? pnl / cost * 100 : 0;
       const alloc     = totalVal > 0 ? mktVal / totalVal * 100 : 0;
-      const sharesFmt = h.shares % 1 !== 0 ? Utils.fmt(h.shares, 3) : Utils.fmt(h.shares);
-      const wItem     = WatchlistModule.getAll().find(w => w.symbol === h.symbol);
+      const qtyFmt    = h.quantity % 1 !== 0 ? Utils.fmt(h.quantity, 3) : Utils.fmt(h.quantity);
+      const wItem     = WatchlistModule.getAll().find(w => w.stockId === h.stockId);
       const aiPoints  = wItem ? AIModule.analyzeStock(wItem, h) : [];
       const aiHint    = aiPoints.length > 1 ? aiPoints[0].text : null;
       return `
         <div class="stock-row" style="flex-direction:column;align-items:stretch;gap:8px">
           <div style="display:flex;justify-content:space-between;align-items:flex-start">
             <div>
-              <div class="stock-symbol">${h.symbol}</div>
-              <div class="stock-name">${h.name} · ${sharesFmt} 股</div>
+              <div class="stock-symbol">${h.stockId}</div>
+              <div class="stock-name">${h.stockName} · ${qtyFmt} 股</div>
               <div style="margin-top:5px">
                 <span class="chip chip-gray">均價 $${Utils.fmt(h.avgCost, 2)}</span>
                 <span class="chip chip-blue">${Utils.fmt(alloc, 1)}%</span>
@@ -177,7 +177,7 @@ const DashboardModule = (() => {
           </div>
           ${aiHint ? `<div style="font-size:12px;color:var(--muted);padding:6px 8px;background:var(--surface2);border-radius:6px">💬 ${aiHint}</div>` : ''}
           <div style="text-align:right">
-            <span style="font-size:12px;color:var(--accent);cursor:pointer" onclick="App.viewHoldingHistory('${h.symbol}')">查看交易紀錄 →</span>
+            <span style="font-size:12px;color:var(--accent);cursor:pointer" onclick="App.viewHoldingHistory('${h.stockId}')">查看交易紀錄 →</span>
           </div>
         </div>
       `;
@@ -194,7 +194,7 @@ const DashboardModule = (() => {
       <div class="card">
         <div class="card-title">總資產</div>
         <div class="total-row"><span class="total-label">總資產</span><span class="total-value">$${Utils.fmt(totalAssets)}</span></div>
-        <div class="total-row"><span class="total-label">股票市值</span><span>$${Utils.fmt(holdings.reduce((s,h)=>s+h.shares*(h.currentPrice||h.avgCost),0))}</span></div>
+        <div class="total-row"><span class="total-label">股票市值</span><span>$${Utils.fmt(holdings.reduce((s,h)=>s+h.quantity*(h.currentPrice||h.avgCost),0))}</span></div>
         <div class="total-row"><span class="total-label">現金餘額</span><span class="${cash < 0 ? 'negative' : ''}">$${Utils.fmt(cash)}</span></div>
         <div class="total-row"><span class="total-label">未實現損益</span><span class="${Utils.pnlCls(unrealized)}">${Utils.pnlSign(unrealized)}$${Utils.fmt(Math.abs(unrealized))} (${Utils.pnlSign(unrealPct)}${Utils.fmt(unrealPct, 2)}%)</span></div>
         <div class="total-row"><span class="total-label">已實現損益</span><span class="${Utils.pnlCls(realized)}">${Utils.pnlSign(realized)}$${Utils.fmt(Math.abs(realized))}</span></div>
@@ -227,12 +227,12 @@ const DashboardModule = (() => {
           <div class="watch-row" onclick="App.openStockDetail('${w.id}')" style="cursor:pointer">
             <div style="flex:1;min-width:0">
               <div style="display:flex;align-items:center;gap:6px">
-                <span class="stock-symbol">${w.symbol}</span>
+                <span class="stock-symbol">${w.stockId}</span>
                 <span class="score-badge ${sl.cls}">${sl.label} ${score}</span>
                 ${met ? '<span style="font-size:14px">🎯</span>' : ''}
               </div>
-              <div class="stock-name">${w.name}</div>
-              ${w.note ? `<div style="font-size:12px;color:var(--muted);margin-top:2px">${w.note}</div>` : ''}
+              <div class="stock-name">${w.stockName}</div>
+              ${w.memo ? `<div style="font-size:12px;color:var(--muted);margin-top:2px">${w.memo}</div>` : ''}
             </div>
             <div style="text-align:right;flex-shrink:0;padding-left:8px">
               <div class="watch-price ${met ? 'target-met' : ''}"
@@ -271,7 +271,7 @@ const DashboardModule = (() => {
 
     const totalDeposit  = txs.filter(t => t.type === 'deposit').reduce((s, t) => s + t.cashAmt, 0);
     const totalWithdraw = txs.filter(t => t.type === 'withdraw').reduce((s, t) => s + t.cashAmt, 0);
-    const totalBuyAmt   = txs.filter(t => t.type === 'buy').reduce((s, t) => s + t.shares * t.price, 0);
+    const totalBuyAmt   = txs.filter(t => t.type === 'buy').reduce((s, t) => s + t.quantity * t.price, 0);
     const totalFees     = txs.reduce((s, t) => s + (t.fee || 0), 0);
 
     const LABEL = { buy:'買入', sell:'賣出', deposit:'入金', withdraw:'出金' };
@@ -280,23 +280,23 @@ const DashboardModule = (() => {
     const CLS   = { buy:'negative', sell:'positive', deposit:'positive', withdraw:'negative' };
 
     const rows = txs.map(tx => {
-      const isTrade = tx.type === 'buy' || tx.type === 'sell';
-      const amount  = isTrade ? (tx.shares * tx.price) : tx.cashAmt;
-      const sharesFmt = tx.shares % 1 !== 0 ? Utils.fmt(tx.shares, 3) : Utils.fmt(tx.shares);
+      const isTrade  = tx.type === 'buy' || tx.type === 'sell';
+      const amount   = isTrade ? (tx.quantity * tx.price) : tx.cashAmt;
+      const qtyFmt   = tx.quantity && tx.quantity % 1 !== 0 ? Utils.fmt(tx.quantity, 3) : Utils.fmt(tx.quantity || 0);
       return `
         <div class="tx-row">
           <div style="flex:1;min-width:0">
             <div class="tx-date">${tx.date}</div>
             <div class="tx-desc">
               <span class="chip ${CHIP[tx.type]}">${LABEL[tx.type]}</span>
-              ${isTrade ? `${tx.symbol} ${tx.name}` : '現金'}
+              ${isTrade ? `${tx.stockId} ${tx.stockName}` : '現金'}
             </div>
-            ${tx.reason ? `<div style="font-size:12px;color:var(--muted);margin-top:3px">理由：${tx.reason}</div>` : ''}
-            ${tx.note   ? `<div style="font-size:12px;color:var(--muted);margin-top:1px">${tx.note}</div>` : ''}
+            ${tx.thesis ? `<div style="font-size:12px;color:var(--muted);margin-top:3px">理由：${tx.thesis}</div>` : ''}
+            ${tx.memo   ? `<div style="font-size:12px;color:var(--muted);margin-top:1px">${tx.memo}</div>` : ''}
           </div>
           <div style="flex-shrink:0;padding-left:12px">
             <div class="tx-amount ${CLS[tx.type]}">${SIGN[tx.type]}$${Utils.fmt(amount)}</div>
-            ${isTrade ? `<div class="tx-sub">${sharesFmt} 股 @ $${Utils.fmt(tx.price, 2)}</div>` : ''}
+            ${isTrade ? `<div class="tx-sub">${qtyFmt} 股 @ $${Utils.fmt(tx.price, 2)}</div>` : ''}
             ${tx.fee    ? `<div class="tx-sub">手續費 $${Utils.fmt(tx.fee)}</div>` : ''}
             <button class="btn-sm" onclick="App.deleteTx('${tx.id}')" style="margin-top:6px">刪除</button>
           </div>
@@ -315,9 +315,9 @@ const DashboardModule = (() => {
       </div>
       <input class="search-bar" id="historySearch" placeholder="搜尋股票代號、名稱或日期…" oninput="App.filterHistory(this.value)">
       <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
-        <button class="btn-sm hist-filter-btn selected" data-type="all"    onclick="App.filterHistoryType('all')">全部</button>
-        <button class="btn-sm hist-filter-btn"          data-type="buy"    onclick="App.filterHistoryType('buy')">買進</button>
-        <button class="btn-sm hist-filter-btn"          data-type="sell"   onclick="App.filterHistoryType('sell')">賣出</button>
+        <button class="btn-sm hist-filter-btn selected" data-type="all"     onclick="App.filterHistoryType('all')">全部</button>
+        <button class="btn-sm hist-filter-btn"          data-type="buy"     onclick="App.filterHistoryType('buy')">買進</button>
+        <button class="btn-sm hist-filter-btn"          data-type="sell"    onclick="App.filterHistoryType('sell')">賣出</button>
         <button class="btn-sm hist-filter-btn"          data-type="deposit" onclick="App.filterHistoryType('deposit')">入金</button>
         <button class="btn-sm hist-filter-btn"          data-type="withdraw" onclick="App.filterHistoryType('withdraw')">出金</button>
         <span style="margin-left:auto;display:flex;gap:6px">
@@ -331,27 +331,28 @@ const DashboardModule = (() => {
         ${rows}
       </div>
     `;
+
     DashboardModule._histCache = { list: txs, rowFn: (list) => list.map(tx => {
-      const isTrade   = tx.type === 'buy' || tx.type === 'sell';
-      const amount    = isTrade ? (tx.shares * tx.price) : tx.cashAmt;
-      const sharesFmt = tx.shares && tx.shares % 1 !== 0 ? Utils.fmt(tx.shares, 3) : Utils.fmt(tx.shares || 0);
-      const secTax    = tx.type === 'sell' ? Utils.fmt(tx.shares * tx.price * 0.003) : null;
+      const isTrade  = tx.type === 'buy' || tx.type === 'sell';
+      const amount   = isTrade ? (tx.quantity * tx.price) : tx.cashAmt;
+      const qtyFmt   = tx.quantity && tx.quantity % 1 !== 0 ? Utils.fmt(tx.quantity, 3) : Utils.fmt(tx.quantity || 0);
+      const secTax   = tx.type === 'sell' && tx.tax ? Utils.fmt(tx.tax) : null;
       return `
         <div class="tx-row">
           <div style="flex:1;min-width:0">
             <div class="tx-date">${tx.date}</div>
             <div class="tx-desc">
               <span class="chip ${CHIP[tx.type]}">${LABEL[tx.type]}</span>
-              ${isTrade ? `${tx.symbol} ${tx.name}` : '現金'}
+              ${isTrade ? `${tx.stockId} ${tx.stockName}` : '現金'}
             </div>
-            ${tx.reason ? `<div style="font-size:12px;color:var(--muted);margin-top:3px">理由：${tx.reason}</div>` : ''}
-            ${tx.note   ? `<div style="font-size:12px;color:var(--muted);margin-top:1px">${tx.note}</div>` : ''}
+            ${tx.thesis ? `<div style="font-size:12px;color:var(--muted);margin-top:3px">理由：${tx.thesis}</div>` : ''}
+            ${tx.memo   ? `<div style="font-size:12px;color:var(--muted);margin-top:1px">${tx.memo}</div>` : ''}
           </div>
           <div style="flex-shrink:0;padding-left:12px">
             <div class="tx-amount ${CLS[tx.type]}">${SIGN[tx.type]}$${Utils.fmt(amount)}</div>
-            ${isTrade ? `<div class="tx-sub">${sharesFmt} 股 @ $${Utils.fmt(tx.price, 2)}</div>` : ''}
-            ${tx.fee  ? `<div class="tx-sub">手續費 $${Utils.fmt(tx.fee)}</div>` : ''}
-            ${secTax  ? `<div class="tx-sub">證交稅 $${secTax}</div>` : ''}
+            ${isTrade ? `<div class="tx-sub">${qtyFmt} 股 @ $${Utils.fmt(tx.price, 2)}</div>` : ''}
+            ${tx.fee    ? `<div class="tx-sub">手續費 $${Utils.fmt(tx.fee)}</div>` : ''}
+            ${secTax    ? `<div class="tx-sub">證交稅 $${secTax}</div>` : ''}
             <button class="btn-sm" onclick="App.deleteTx('${tx.id}')" style="margin-top:6px">刪除</button>
           </div>
         </div>
@@ -436,13 +437,10 @@ const DashboardModule = (() => {
       <div class="card">
         <div class="card-title">資料管理</div>
         <p style="font-size:13px;color:var(--muted);margin-bottom:12px">所有資料儲存於你的裝置本機，不會上傳至任何伺服器。</p>
-        <div class="setting-row">
-          <span class="setting-label">資料備份</span>
-          <span style="font-size:13px;color:var(--muted)">⏳ 即將推出</span>
-        </div>
         <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px">
-          <button class="btn btn-danger" onclick="App.exportData()">資料匯出（JSON）</button>
-          <button class="btn btn-danger" onclick="App.clearAllData()">清除所有資料</button>
+          <button class="btn btn-primary" onclick="App.exportData()">匯出資料（JSON）</button>
+          <button class="btn btn-primary" onclick="App.importData()">匯入資料（JSON）</button>
+          <button class="btn btn-danger"  onclick="App.clearAllData()">清除所有資料</button>
         </div>
       </div>
     `;
@@ -453,29 +451,6 @@ const DashboardModule = (() => {
   function _set(id, html) {
     const el = document.getElementById(id);
     if (el) el.innerHTML = html;
-  }
-
-  function _aiCard(items) {
-    return `
-      <div class="card">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-          <div class="card-title" style="margin-bottom:0">AI 陪跑教練</div>
-          <span style="font-size:11px;color:var(--muted)">分析僅供參考</span>
-        </div>
-        ${items.map(i => `
-          <div class="insight-item">
-            <div class="insight-icon">${i.icon}</div>
-            <div class="insight-text">
-              ${i.text}
-              ${i.decision ? `<div class="insight-decision">💬 ${i.decision}</div>` : ''}
-            </div>
-          </div>
-        `).join('')}
-        <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);text-align:center">
-          AI 提供分析與提醒，所有投資決策由你自己決定。
-        </div>
-      </div>
-    `;
   }
 
   return { renderHome, renderPortfolio, renderWatchlist, renderHistory, renderSettings, _watchCache: null, _histCache: null };

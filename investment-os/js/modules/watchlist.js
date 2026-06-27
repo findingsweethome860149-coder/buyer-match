@@ -4,28 +4,26 @@
  * NOT responsible for: Portfolio management.
  */
 const WatchlistModule = (() => {
-  const KEY = 'watchlist';
 
   function getAll() {
-    return DB.get(KEY, []);
+    return DB.Watchlist.getAll();
   }
 
   function add(item) {
-    if (!item.id) item.id = Utils.uid();
-    const all = getAll();
-    all.push(item);
-    DB.set(KEY, all);
+    if (!item.id)        item.id        = Utils.uid();
+    if (!item.createdAt) item.createdAt = new Date().toISOString();
+    DB.Watchlist.add(item);
     return item;
   }
 
   function remove(id) {
-    DB.set(KEY, getAll().filter(w => w.id !== id));
+    DB.Watchlist.remove(id);
   }
 
   function updatePrice(id, price) {
-    const all = getAll();
+    const all  = getAll();
     const item = all.find(w => w.id === id);
-    if (item) { item.currentPrice = price; DB.set(KEY, all); }
+    if (item) { item.currentPrice = price; DB.Watchlist.save(all); }
   }
 
   function getTargetHits() {

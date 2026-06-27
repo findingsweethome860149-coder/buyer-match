@@ -5,33 +5,43 @@
  * Portfolio recalculates itself from transaction history.
  */
 const TransactionModule = (() => {
-  const KEY = 'transactions';
 
   function getAll() {
-    return DB.get(KEY, []);
+    return DB.Transactions.getAll();
   }
 
   function add(tx) {
-    if (!tx.id)   tx.id   = Utils.uid();
-    if (!tx.date) tx.date = Utils.today();
-    const all = getAll();
-    all.push(tx);
-    DB.set(KEY, all);
+    if (!tx.id)        tx.id        = Utils.uid();
+    if (!tx.date)      tx.date      = Utils.today();
+    if (!tx.createdAt) tx.createdAt = new Date().toISOString();
+
+    const isTrade = tx.type === 'buy' || tx.type === 'sell';
+    if (isTrade) {
+      if (tx.type === 'sell' && tx.tax === undefined) {
+        tx.tax = Math.round(tx.quantity * tx.price * 0.003);
+      }
+      if (tx.total === undefined) {
+        tx.total = tx.type === 'buy'
+          ? tx.quantity * tx.price + (tx.fee || 0)
+          : tx.quantity * tx.price - (tx.fee || 0) - (tx.tax || 0);
+      }
+    }
+
+    DB.Transactions.add(tx);
     return tx;
   }
 
   function remove(id) {
-    const all = getAll().filter(t => t.id !== id);
-    DB.set(KEY, all);
+    DB.Transactions.remove(id);
   }
 
-  function getBySymbol(symbol) {
-    return getAll().filter(t => t.symbol === symbol);
+  function getByStockId(stockId) {
+    return DB.Transactions.getByStockId(stockId);
   }
 
   function getByType(type) {
-    return getAll().filter(t => t.type === type);
+    return DB.Transactions.getByType(type);
   }
 
-  return { getAll, add, remove, getBySymbol, getByType };
+  return { getAll, add, remove, getByStockId, getByType };
 })();
