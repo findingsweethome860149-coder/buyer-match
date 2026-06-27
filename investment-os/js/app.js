@@ -217,6 +217,9 @@ const App = (() => {
 
       if (!stockId || !stockName) { NotificationModule.toast('請填寫股票代號與名稱'); return; }
 
+      const duplicate = WatchlistModule.getAll().find(w => w.stockId === stockId);
+      if (duplicate) { NotificationModule.toast(`${stockId} 已在觀察清單中`); return; }
+
       WatchlistModule.add({ stockId, stockName, currentPrice: current, targetPrice: target, memo });
       ['watchSymbol','watchName','watchCurrent','watchTarget','watchNote'].forEach(id => {
         document.getElementById(id).value = '';

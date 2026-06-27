@@ -308,10 +308,11 @@ const DashboardModule = (() => {
     const SIGN  = { buy:'-', sell:'+', deposit:'+', withdraw:'-' };
     const CLS   = { buy:'negative', sell:'positive', deposit:'positive', withdraw:'negative' };
 
-    const rows = txs.map(tx => {
-      const isTrade  = tx.type === 'buy' || tx.type === 'sell';
-      const amount   = isTrade ? (tx.quantity * tx.price) : tx.cashAmt;
-      const qtyFmt   = tx.quantity && tx.quantity % 1 !== 0 ? Utils.fmt(tx.quantity, 3) : Utils.fmt(tx.quantity || 0);
+    function _txRow(tx) {
+      const isTrade = tx.type === 'buy' || tx.type === 'sell';
+      const amount  = isTrade ? (tx.quantity * tx.price) : tx.cashAmt;
+      const qtyFmt  = tx.quantity && tx.quantity % 1 !== 0 ? Utils.fmt(tx.quantity, 3) : Utils.fmt(tx.quantity || 0);
+      const secTax  = tx.type === 'sell' && tx.tax ? Utils.fmt(tx.tax) : null;
       return `
         <div class="tx-row">
           <div style="flex:1;min-width:0">
@@ -326,12 +327,15 @@ const DashboardModule = (() => {
           <div style="flex-shrink:0;padding-left:12px">
             <div class="tx-amount ${CLS[tx.type]}">${SIGN[tx.type]}$${Utils.fmt(amount)}</div>
             ${isTrade ? `<div class="tx-sub">${qtyFmt} 股 @ $${Utils.fmt(tx.price, 2)}</div>` : ''}
-            ${tx.fee    ? `<div class="tx-sub">手續費 $${Utils.fmt(tx.fee)}</div>` : ''}
+            ${tx.fee  ? `<div class="tx-sub">手續費 $${Utils.fmt(tx.fee)}</div>` : ''}
+            ${secTax  ? `<div class="tx-sub">證交稅 $${secTax}</div>` : ''}
             <button class="btn-sm" onclick="App.deleteTx('${tx.id}')" style="margin-top:6px">刪除</button>
           </div>
         </div>
       `;
-    }).join('');
+    }
+
+    const rows = txs.map(_txRow).join('');
 
     el.innerHTML = `
       <div class="card">
@@ -361,32 +365,7 @@ const DashboardModule = (() => {
       </div>
     `;
 
-    DashboardModule._histCache = { list: txs, rowFn: (list) => list.map(tx => {
-      const isTrade  = tx.type === 'buy' || tx.type === 'sell';
-      const amount   = isTrade ? (tx.quantity * tx.price) : tx.cashAmt;
-      const qtyFmt   = tx.quantity && tx.quantity % 1 !== 0 ? Utils.fmt(tx.quantity, 3) : Utils.fmt(tx.quantity || 0);
-      const secTax   = tx.type === 'sell' && tx.tax ? Utils.fmt(tx.tax) : null;
-      return `
-        <div class="tx-row">
-          <div style="flex:1;min-width:0">
-            <div class="tx-date">${tx.date}</div>
-            <div class="tx-desc">
-              <span class="chip ${CHIP[tx.type]}">${LABEL[tx.type]}</span>
-              ${isTrade ? `${tx.stockId} ${tx.stockName}` : '現金'}
-            </div>
-            ${tx.thesis ? `<div style="font-size:12px;color:var(--muted);margin-top:3px">理由：${tx.thesis}</div>` : ''}
-            ${tx.memo   ? `<div style="font-size:12px;color:var(--muted);margin-top:1px">${tx.memo}</div>` : ''}
-          </div>
-          <div style="flex-shrink:0;padding-left:12px">
-            <div class="tx-amount ${CLS[tx.type]}">${SIGN[tx.type]}$${Utils.fmt(amount)}</div>
-            ${isTrade ? `<div class="tx-sub">${qtyFmt} 股 @ $${Utils.fmt(tx.price, 2)}</div>` : ''}
-            ${tx.fee    ? `<div class="tx-sub">手續費 $${Utils.fmt(tx.fee)}</div>` : ''}
-            ${secTax    ? `<div class="tx-sub">證交稅 $${secTax}</div>` : ''}
-            <button class="btn-sm" onclick="App.deleteTx('${tx.id}')" style="margin-top:6px">刪除</button>
-          </div>
-        </div>
-      `;
-    }).join('') };
+    DashboardModule._histCache = { list: txs, rowFn: (list) => list.map(_txRow).join('') };
   }
 
   // ── Settings ──────────────────────────────────────────────────────────────
