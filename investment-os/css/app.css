@@ -80,6 +80,16 @@ body {
   padding: 4px 10px; font-size: 12px; font-weight: 600; color: var(--accent);
 }
 
+/* ── Icon Button ── */
+.icon-btn {
+  background: none; border: none; cursor: pointer;
+  color: var(--muted); padding: 4px; border-radius: 6px;
+  display: flex; align-items: center; transition: color .15s;
+}
+.icon-btn:hover { color: var(--accent); }
+.icon-btn.spinning svg { animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
 /* ── Pages ── */
 .page { display: none; padding: 16px 20px; }
 .page.active { display: block; }

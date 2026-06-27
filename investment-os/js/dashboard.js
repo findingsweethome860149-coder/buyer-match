@@ -492,7 +492,7 @@ const DashboardModule = (() => {
               value="${(typeof localStorage !== 'undefined' ? localStorage.getItem('aios_line_server_url') : '') || ''}">
             <button class="btn" style="font-size:12px;padding:6px 10px" onclick="App.saveLineServerUrl()">儲存</button>
           </div>
-          <div style="font-size:11px;color:var(--muted);margin-top:4px">設定後每 15 秒自動同步 LINE 操作</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px">設定後可自動更新 Yahoo Finance 股價，並每 15 秒同步 LINE 操作</div>
         </div>
       </div>
 

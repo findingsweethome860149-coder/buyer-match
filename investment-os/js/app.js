@@ -413,6 +413,68 @@ const App = (() => {
     }
   }
 
+  // ─── Price refresh ────────────────────────────────────────────────────────
+
+  async function refreshPrices() {
+    if (!PriceModule.isConfigured()) {
+      NotificationModule.toast('請先在設定頁面輸入伺服器網址以啟用自動股價更新');
+      return;
+    }
+
+    const btn = document.getElementById('refreshPriceBtn');
+    if (btn) btn.classList.add('spinning');
+    _setPriceStatus('更新中…');
+
+    try {
+      const holdings  = PortfolioModule.getHoldings();
+      const watchlist = WatchlistModule.getAll();
+      const allIds    = [...new Set([
+        ...holdings.map(h => h.stockId),
+        ...watchlist.map(w => w.stockId),
+      ])];
+
+      const prices = await PriceModule.fetchPrices(allIds);
+      if (!prices) {
+        _setPriceStatus('');
+        NotificationModule.toast('請先在設定頁面輸入伺服器網址');
+        return;
+      }
+
+      let updated = 0;
+      holdings.forEach(h => {
+        const p = prices[h.stockId];
+        if (p && p.price) { PortfolioModule.updateCurrentPrice(h.stockId, p.price); updated++; }
+      });
+      watchlist.forEach(w => {
+        const p = prices[w.stockId];
+        if (p && p.price) { WatchlistModule.updatePrice(w.id, p.price); updated++; }
+      });
+
+      const now    = new Date();
+      const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+      const market = PriceModule.isMarketOpen() ? '盤中' : '盤後';
+      _setPriceStatus(updated > 0
+        ? `${market} · 已更新 ${updated} 檔 · ${timeStr}`
+        : `無法取得股價資料 · ${timeStr}`);
+
+      if (updated > 0) {
+        NotificationModule.toast(`已更新 ${updated} 檔股價`);
+        _safeRender();
+      }
+    } catch {
+      _setPriceStatus('股價更新失敗');
+    } finally {
+      if (btn) btn.classList.remove('spinning');
+    }
+  }
+
+  function _setPriceStatus(text) {
+    const bar = document.getElementById('priceStatusBar');
+    if (!bar) return;
+    bar.textContent = text;
+    bar.style.display = text ? '' : 'none';
+  }
+
   // ─── Settings actions ─────────────────────────────────────────────────────
 
   function toggleDarkMode(isDark) {
@@ -467,13 +529,18 @@ const App = (() => {
     const input = document.getElementById('lineServerUrl');
     if (!input) return;
     const url = input.value.trim().replace(/\/$/, '');
+    const btn = document.getElementById('refreshPriceBtn');
     if (url) {
       localStorage.setItem('aios_line_server_url', url);
-      NotificationModule.toast('LINE 伺服器網址已儲存，同步已啟動');
+      if (btn) btn.style.display = '';
+      NotificationModule.toast('伺服器網址已儲存，股價更新與 LINE 同步已啟動');
       _startLineSyncPoll();
+      refreshPrices();
     } else {
       localStorage.removeItem('aios_line_server_url');
-      NotificationModule.toast('LINE 伺服器網址已清除');
+      if (btn) btn.style.display = 'none';
+      _setPriceStatus('');
+      NotificationModule.toast('伺服器網址已清除');
     }
   }
 
@@ -696,6 +763,12 @@ const App = (() => {
       NotificationModule.toast('發生錯誤，請重新整理頁面。資料已自動保存。');
     });
 
+    // Show price refresh button if server is configured
+    if (PriceModule.isConfigured()) {
+      const btn = document.getElementById('refreshPriceBtn');
+      if (btn) btn.style.display = '';
+    }
+
     // LINE sync polling (every 15s, only if server is configured)
     _startLineSyncPoll();
 
@@ -905,5 +978,6 @@ const App = (() => {
     finishOnboard,
     onThesisChange,
     saveLineServerUrl,
+    refreshPrices,
   };
 })();

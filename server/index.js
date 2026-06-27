@@ -127,6 +127,78 @@ app.post('/api/sync/ack', (req, res) => {
 /** GET /health */
 app.get('/health', (req, res) => res.json({ ok: true, ts: new Date().toISOString() }));
 
+// ── Yahoo Finance Price Proxy ─────────────────────────────────────────────
+// GET /api/price?stocks=2330,2317
+// Returns: { prices: { "2330": { price, change, changePct, name, updatedAt } } }
+// Tries {id}.TW first, then {id}.TWO for OTC stocks.
+
+const PRICE_CACHE     = new Map();
+const PRICE_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+app.get('/api/price', async (req, res) => {
+  const raw = (req.query.stocks || '').split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+  if (raw.length === 0) return res.status(400).json({ error: 'stocks param required' });
+  if (raw.length > 20)  return res.status(400).json({ error: 'max 20 stocks per request' });
+
+  const prices = {};
+  const now    = Date.now();
+
+  // Split into cached and to-fetch
+  const toFetch = [];
+  raw.forEach(id => {
+    const cached = PRICE_CACHE.get(id);
+    if (cached && now - cached.fetchedAt < PRICE_CACHE_TTL) {
+      prices[id] = cached.data;
+    } else {
+      toFetch.push(id);
+    }
+  });
+
+  if (toFetch.length > 0) {
+    // Yahoo Finance accepts comma-separated symbols in one request
+    const trySymbols = async (ids, suffix) => {
+      const symbols = ids.map(id => `${id}${suffix}`).join(',');
+      const url     = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbols}&fields=regularMarketPrice,regularMarketChange,regularMarketChangePercent,shortName`;
+      const resp    = await fetch(url, {
+        headers: { 'User-Agent': 'Mozilla/5.0' },
+        signal:  AbortSignal.timeout(8000),
+      });
+      if (!resp.ok) throw new Error(`Yahoo HTTP ${resp.status}`);
+      const body = await resp.json();
+      return (body?.quoteResponse?.result || []);
+    };
+
+    // Try TSE (.TW) batch first
+    let results = [];
+    try { results = await trySymbols(toFetch, '.TW'); } catch { /* will retry per-stock */ }
+
+    // For any that returned no price, retry with .TWO (OTC)
+    const found = new Set(results.map(r => r.symbol?.replace(/\.(TW|TWO)$/, '')));
+    const retry = toFetch.filter(id => !found.has(id));
+    if (retry.length > 0) {
+      try {
+        const otcResults = await trySymbols(retry, '.TWO');
+        results = results.concat(otcResults);
+      } catch { /* best effort */ }
+    }
+
+    results.forEach(r => {
+      const id   = (r.symbol || '').replace(/\.(TW|TWO)$/, '');
+      const data = {
+        price:     r.regularMarketPrice      ?? null,
+        change:    r.regularMarketChange     ?? null,
+        changePct: r.regularMarketChangePercent ?? null,
+        name:      r.shortName               ?? id,
+        updatedAt: new Date().toISOString(),
+      };
+      PRICE_CACHE.set(id, { data, fetchedAt: now });
+      prices[id] = data;
+    });
+  }
+
+  res.json({ prices });
+});
+
 // ── LINE Reply helper ─────────────────────────────────────────────────────
 
 async function _reply(replyToken, text) {
