@@ -59,5 +59,12 @@ const Utils = (() => {
     return null;
   }
 
-  return { fmt, uid, today, pnlCls, pnlSign, calcFee, xirr };
+  function csvRow(fields) {
+    return fields.map(f => {
+      const s = f === null || f === undefined ? '' : String(f);
+      return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+    }).join(',');
+  }
+
+  return { fmt, uid, today, pnlCls, pnlSign, calcFee, xirr, csvRow };
 })();

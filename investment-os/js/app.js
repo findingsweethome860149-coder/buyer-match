@@ -632,6 +632,64 @@ const App = (() => {
     }
   }
 
+  function exportCSV(type) {
+    try {
+      const pad = n => String(n).padStart(2, '0');
+      const now = new Date();
+      const ts  = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}`;
+      let rows, filename;
+
+      if (type === 'transactions') {
+        rows = [Utils.csvRow(['日期','類型','股票代號','股票名稱','股數','成交價','手續費','證交稅','已實現損益','入出金','備註'])];
+        const LABEL = { buy:'買入', sell:'賣出', deposit:'入金', withdraw:'出金' };
+        TransactionModule.getAll().forEach(tx => {
+          rows.push(Utils.csvRow([
+            tx.date,
+            LABEL[tx.type] || tx.type,
+            tx.stockId    || '',
+            tx.stockName  || '',
+            tx.quantity   != null ? tx.quantity   : '',
+            tx.price      != null ? tx.price      : '',
+            tx.fee        != null ? tx.fee        : '',
+            tx.tax        != null ? tx.tax        : '',
+            tx.realizedPnL != null ? tx.realizedPnL : '',
+            tx.cashAmt    != null ? tx.cashAmt    : '',
+            tx.memo       || '',
+          ]));
+        });
+        filename = `AIOS_交易紀錄_${ts}.csv`;
+      } else if (type === 'dividends') {
+        rows = [Utils.csvRow(['日期','股票代號','股票名稱','現金股利','股票股利(股)','備註'])];
+        DB.Dividends.getAll().forEach(d => {
+          rows.push(Utils.csvRow([d.date, d.stockId, d.stockName || '', d.cashAmount || '', d.stockShares || '', d.memo || '']));
+        });
+        filename = `AIOS_股利紀錄_${ts}.csv`;
+      } else if (type === 'holdings') {
+        rows = [Utils.csvRow(['股票代號','股票名稱','持股數','平均成本','現價','市值','未實現損益','未實現損益%'])];
+        PortfolioModule.getHoldings().forEach(h => {
+          const mv  = h.quantity * (h.currentPrice || h.avgCost);
+          const pnl = mv - h.quantity * h.avgCost;
+          const pct = h.avgCost > 0 ? (pnl / (h.quantity * h.avgCost) * 100).toFixed(2) : '';
+          rows.push(Utils.csvRow([h.stockId, h.stockName, h.quantity, h.avgCost.toFixed(2), h.currentPrice || '', mv.toFixed(0), pnl.toFixed(0), pct]));
+        });
+        filename = `AIOS_持股損益_${ts}.csv`;
+      } else {
+        return;
+      }
+
+      const bom  = '﻿'; // UTF-8 BOM so Excel opens correctly
+      const blob = new Blob([bom + rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+      const a    = document.createElement('a');
+      a.href     = URL.createObjectURL(blob);
+      a.download = filename;
+      a.click();
+      SecurityModule.log('exportCSV', type);
+      NotificationModule.toast('CSV 已下載');
+    } catch {
+      NotificationModule.toast('匯出失敗，請稍後再試。');
+    }
+  }
+
   function exportData() {
     try {
       const data = DB.exportAll();
@@ -1065,6 +1123,7 @@ const App = (() => {
     confirmUpdatePrice,
     editSetting,
     toggleDarkMode,
+    exportCSV,
     exportData,
     importData,
     clearAllData,

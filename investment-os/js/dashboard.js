@@ -559,7 +559,15 @@ const DashboardModule = (() => {
       <div class="card">
         <div class="card-title">資料管理</div>
         <p style="font-size:13px;color:var(--muted);margin-bottom:12px">所有資料儲存於你的裝置本機，不會上傳至任何伺服器。</p>
-        <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:6px">CSV 匯出（可用 Excel 開啟）</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <button class="btn" onclick="App.exportCSV('transactions')">匯出交易紀錄 CSV</button>
+          <button class="btn" onclick="App.exportCSV('dividends')">匯出股利紀錄 CSV</button>
+          <button class="btn" onclick="App.exportCSV('holdings')">匯出持股損益 CSV</button>
+        </div>
+        <div style="border-top:1px solid var(--border);margin:12px 0 8px"></div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:6px">完整備份</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
           <button class="btn btn-primary" onclick="App.exportData()">匯出資料（JSON）</button>
           <button class="btn btn-primary" onclick="App.importData()">匯入資料（JSON）</button>
           <button class="btn btn-danger"  onclick="App.clearAllData()">清除所有資料</button>

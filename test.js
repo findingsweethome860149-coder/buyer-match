@@ -226,6 +226,34 @@ console.log('\n[11] Sprint 9 — Dividends, XIRR, PWA');
   ok('stock_dividend filter support', dash.includes('chip-green') && dash.includes('股利'));
 }
 
+// 12. Sprint 10 — CSV Export
+console.log('\n[12] Sprint 10 — CSV Export');
+{
+  const { readFileSync } = await import('fs');
+
+  const utils = readFileSync('/home/user/buyer-match/investment-os/js/utils.js', 'utf8');
+  ok('csvRow in utils.js',        utils.includes('function csvRow'));
+  ok('csvRow exported',           utils.includes('csvRow'));
+  ok('csvRow handles quotes',     utils.includes("replace(/\"/g"));
+  ok('csvRow handles commas/NL',  utils.includes('[",') || utils.includes('","'));
+
+  const app = readFileSync('/home/user/buyer-match/investment-os/js/app.js', 'utf8');
+  ok('exportCSV in app.js',              app.includes('function exportCSV'));
+  ok('exportCSV exported',               app.includes('exportCSV,'));
+  ok("exportCSV handles 'transactions'", app.includes("type === 'transactions'"));
+  ok("exportCSV handles 'dividends'",    app.includes("type === 'dividends'"));
+  ok("exportCSV handles 'holdings'",     app.includes("type === 'holdings'"));
+  ok('UTF-8 BOM for Excel',              app.includes('\\uFEFF') || app.includes('﻿'));
+  ok('CSV filename 交易紀錄',             app.includes('AIOS_交易紀錄'));
+  ok('CSV filename 股利紀錄',             app.includes('AIOS_股利紀錄'));
+  ok('CSV filename 持股損益',             app.includes('AIOS_持股損益'));
+
+  const dash = readFileSync('/home/user/buyer-match/investment-os/js/dashboard.js', 'utf8');
+  ok("exportCSV('transactions') button", dash.includes("exportCSV('transactions')"));
+  ok("exportCSV('dividends') button",    dash.includes("exportCSV('dividends')"));
+  ok("exportCSV('holdings') button",     dash.includes("exportCSV('holdings')"));
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 console.log('\n' + '─'.repeat(50));
 const total = passed + failed;
