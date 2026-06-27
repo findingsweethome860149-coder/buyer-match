@@ -48,8 +48,7 @@ const App = (() => {
   function _safeRender() {
     try {
       _renderCurrentPage();
-    } catch (err) {
-      console.error('Render error:', err);
+    } catch {
       NotificationModule.toast('畫面更新失敗，請稍後再試。');
     }
   }
@@ -182,8 +181,7 @@ const App = (() => {
         </div></div>`;
       closeModal('modalTx');
       openModal('modalTxConfirm');
-    } catch (err) {
-      console.error('submitTransaction error:', err);
+    } catch {
       NotificationModule.toast('新增交易失敗，請稍後再試。資料未遺失。');
     }
   }
@@ -218,8 +216,7 @@ const App = (() => {
       _clearTxForm();
       NotificationModule.toast(`${tx.type === 'buy' ? '買入' : '賣出'} ${tx.stockId} ${Utils.fmt(tx.quantity)} 股已記錄`);
       _safeRender();
-    } catch (err) {
-      console.error('confirmTransaction error:', err);
+    } catch {
       NotificationModule.toast('新增交易失敗，請稍後再試。資料未遺失。');
     }
   }
@@ -232,8 +229,7 @@ const App = (() => {
       SecurityModule.log('deleteTx', id);
       NotificationModule.toast('紀錄已刪除');
       _safeRender();
-    } catch (err) {
-      console.error('deleteTx error:', err);
+    } catch {
       NotificationModule.toast('刪除失敗，請稍後再試。');
     }
   }
@@ -260,8 +256,7 @@ const App = (() => {
       closeModal('modalWatch');
       NotificationModule.toast(`已加入觀察：${stockId} ${stockName}`);
       _safeRender();
-    } catch (err) {
-      console.error('addWatch error:', err);
+    } catch {
       NotificationModule.toast('加入觀察失敗，請稍後再試。');
     }
   }
@@ -380,8 +375,7 @@ const App = (() => {
       WatchlistModule.remove(id);
       NotificationModule.toast('已移除');
       _safeRender();
-    } catch (err) {
-      console.error('removeWatch error:', err);
+    } catch {
       NotificationModule.toast('移除失敗，請稍後再試。');
     }
   }
@@ -414,8 +408,7 @@ const App = (() => {
       closeModal('modalUpdatePrice');
       NotificationModule.toast('現價已更新');
       _safeRender();
-    } catch (err) {
-      console.error('confirmUpdatePrice error:', err);
+    } catch {
       NotificationModule.toast('更新失敗，請稍後再試。');
     }
   }
@@ -497,7 +490,7 @@ const App = (() => {
       a.click();
       SecurityModule.log('exportData', Utils.today());
       NotificationModule.toast('備份已下載');
-    } catch (err) {
+    } catch {
       NotificationModule.toast('匯出失敗，請稍後再試。');
     }
   }
@@ -512,6 +505,7 @@ const App = (() => {
           const file = e.target.files[0];
           if (!file) return;
           const reader = new FileReader();
+          reader.onerror = () => { NotificationModule.toast('備份檔讀取失敗，請重試。'); };
           reader.onload = (ev) => {
             try {
               let data;
@@ -522,8 +516,8 @@ const App = (() => {
               SecurityModule.log('importData', file.name);
               NotificationModule.toast('資料匯入成功，重新載入中…');
               setTimeout(() => location.reload(), 1200);
-            } catch (err) {
-              NotificationModule.toast(err.message || '備份檔格式不正確。');
+            } catch (e) {
+              NotificationModule.toast(e.message || '備份檔格式不正確。');
             }
           };
           reader.readAsText(file);
@@ -585,7 +579,7 @@ const App = (() => {
         SecurityModule.log('clearAllData');
         NotificationModule.toast('資料已清除，重新載入中…');
         setTimeout(() => location.reload(), 1200);
-      } catch (err) {
+      } catch {
         NotificationModule.toast('清除失敗，請稍後再試。');
       }
     };
@@ -699,7 +693,6 @@ const App = (() => {
 
     // Global error boundary
     window.addEventListener('error', (e) => {
-      console.error('Uncaught error:', e.error);
       NotificationModule.toast('發生錯誤，請重新整理頁面。資料已自動保存。');
     });
 
@@ -749,8 +742,8 @@ const App = (() => {
         try {
           _processLineOp(op);
           consumed.push(op.id);
-        } catch (err) {
-          console.warn('LINE op failed:', op.type, err.message);
+        } catch {
+          // Skip unprocessable ops silently; they remain in queue
         }
       }
 
@@ -856,7 +849,7 @@ const App = (() => {
     const type   = document.getElementById('txType').value;
     if (shares && price) {
       document.getElementById('txFee').value =
-        Utils.calcFee(shares * price, getSettings().defaultFeeRate, type === 'sell');
+        Utils.calcFee(shares * price, getSettings().defaultFeeRate);
     }
   }
 

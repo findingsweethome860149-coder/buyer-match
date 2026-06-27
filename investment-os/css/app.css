@@ -388,6 +388,19 @@ select.form-input { cursor: pointer; }
   .asset-total { font-size: 18px; }
 }
 
+/* ── Tablet / Desktop centering ─────────────────────────────────────────── */
+@media (min-width: 640px) {
+  body { box-shadow: 0 0 40px rgba(0,0,0,.4); border-radius: var(--radius); min-height: 100vh; }
+  .bottom-nav { border-radius: 0 0 var(--radius) var(--radius); }
+}
+
+/* ── Text overflow guard ─────────────────────────────────────────────────── */
+.stock-symbol, .stock-name, .card-title, .insight-text {
+  overflow-wrap: break-word; word-break: break-word;
+}
+.stock-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 160px; }
+.chip { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; }
+
 /* ── PIN Overlay ─────────────────────────────────────────────────────────── */
 .pin-overlay {
   position: fixed; inset: 0; z-index: 9999;
