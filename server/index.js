@@ -125,79 +125,226 @@ app.post('/api/sync/ack', (req, res) => {
 });
 
 /** GET /health */
-app.get('/health', (req, res) => res.json({ ok: true, ts: new Date().toISOString() }));
+app.get('/health', (req, res) => res.json({
+  ok: true,
+  ts: new Date().toISOString(),
+  priceSources: ['twse-open', 'twse-mis', 'yahoo'],
+  twseOpenCached: !!_twseOpenCache,
+}));
 
-// ── Yahoo Finance Price Proxy ─────────────────────────────────────────────
+// ── Price Proxy (TWSE Open API → TWSE MIS → Yahoo Finance) ──────────────
 // GET /api/price?stocks=2330,2317
-// Returns: { prices: { "2330": { price, change, changePct, name, updatedAt } } }
-// Tries {id}.TW first, then {id}.TWO for OTC stocks.
+// Returns: { prices: { "2330": { price, change, changePct, name, source, updatedAt } } }
 
-const PRICE_CACHE     = new Map();
-const PRICE_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const PRICE_CACHE     = new Map(); // stockId → { data, fetchedAt }
+const PRICE_CACHE_TTL = 3 * 60 * 1000; // 3 minutes
+
+// Bulk TWSE Open API cache (downloads ALL stocks at once)
+let _twseOpenCache     = null; // Map: stockId → { price, change, name }
+let _twseOpenFetchedAt = 0;
+const TWSE_OPEN_TTL   = 3 * 60 * 1000;
 
 app.get('/api/price', async (req, res) => {
   const raw = (req.query.stocks || '').split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
   if (raw.length === 0) return res.status(400).json({ error: 'stocks param required' });
-  if (raw.length > 20)  return res.status(400).json({ error: 'max 20 stocks per request' });
+  if (raw.length > 30)  return res.status(400).json({ error: 'max 30 stocks per request' });
 
   const prices = {};
   const now    = Date.now();
 
-  // Split into cached and to-fetch
-  const toFetch = [];
-  raw.forEach(id => {
-    const cached = PRICE_CACHE.get(id);
-    if (cached && now - cached.fetchedAt < PRICE_CACHE_TTL) {
-      prices[id] = cached.data;
-    } else {
-      toFetch.push(id);
-    }
+  // Serve from per-stock cache first
+  const toFetch = raw.filter(id => {
+    const c = PRICE_CACHE.get(id);
+    if (c && now - c.fetchedAt < PRICE_CACHE_TTL) { prices[id] = c.data; return false; }
+    return true;
   });
 
   if (toFetch.length > 0) {
-    // Yahoo Finance accepts comma-separated symbols in one request
-    const trySymbols = async (ids, suffix) => {
-      const symbols = ids.map(id => `${id}${suffix}`).join(',');
-      const url     = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbols}&fields=regularMarketPrice,regularMarketChange,regularMarketChangePercent,shortName`;
-      const resp    = await fetch(url, {
-        headers: { 'User-Agent': 'Mozilla/5.0' },
-        signal:  AbortSignal.timeout(8000),
-      });
-      if (!resp.ok) throw new Error(`Yahoo HTTP ${resp.status}`);
-      const body = await resp.json();
-      return (body?.quoteResponse?.result || []);
-    };
+    // ── Source 1: TWSE Open API (bulk, ~1 min update, TSE listed only) ──────
+    await _tryTwseOpen(toFetch, prices, now);
 
-    // Try TSE (.TW) batch first
-    let results = [];
-    try { results = await trySymbols(toFetch, '.TW'); } catch { /* will retry per-stock */ }
-
-    // For any that returned no price, retry with .TWO (OTC)
-    const found = new Set(results.map(r => r.symbol?.replace(/\.(TW|TWO)$/, '')));
-    const retry = toFetch.filter(id => !found.has(id));
-    if (retry.length > 0) {
-      try {
-        const otcResults = await trySymbols(retry, '.TWO');
-        results = results.concat(otcResults);
-      } catch { /* best effort */ }
+    // ── Source 2: TWSE MIS API (near real-time, market hours only) ────────
+    const stillMissing = toFetch.filter(id => !prices[id]);
+    if (stillMissing.length > 0) {
+      await _tryTwseMis(stillMissing, prices, now);
     }
 
-    results.forEach(r => {
-      const id   = (r.symbol || '').replace(/\.(TW|TWO)$/, '');
-      const data = {
-        price:     r.regularMarketPrice      ?? null,
-        change:    r.regularMarketChange     ?? null,
-        changePct: r.regularMarketChangePercent ?? null,
-        name:      r.shortName               ?? id,
-        updatedAt: new Date().toISOString(),
-      };
-      PRICE_CACHE.set(id, { data, fetchedAt: now });
-      prices[id] = data;
+    // ── Source 3: Yahoo Finance (fallback, may need crumb) ────────────────
+    const finalMissing = toFetch.filter(id => !prices[id]);
+    if (finalMissing.length > 0) {
+      await _tryYahoo(finalMissing, prices, now);
+    }
+
+    // Cache results
+    toFetch.forEach(id => {
+      if (prices[id]) PRICE_CACHE.set(id, { data: prices[id], fetchedAt: now });
     });
   }
 
-  res.json({ prices });
+  res.json({ prices, ts: new Date().toISOString() });
 });
+
+// Source 1: TWSE Open API — downloads all TSE stock prices in one shot
+async function _tryTwseOpen(ids, out, now) {
+  try {
+    if (!_twseOpenCache || now - _twseOpenFetchedAt > TWSE_OPEN_TTL) {
+      const resp = await fetch(
+        'https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_AVG_ALL',
+        { signal: AbortSignal.timeout(10000) }
+      );
+      if (!resp.ok) return;
+      const list = await resp.json();
+      _twseOpenCache = new Map();
+      list.forEach(row => {
+        const price = parseFloat(row.ClosingPrice);
+        if (row.Code && !isNaN(price)) {
+          _twseOpenCache.set(row.Code, {
+            price,
+            change:    null,
+            changePct: null,
+            name:      row.Name || row.Code,
+          });
+        }
+      });
+      _twseOpenFetchedAt = now;
+    }
+
+    ids.forEach(id => {
+      const d = _twseOpenCache.get(id);
+      if (d) out[id] = { ...d, source: 'twse-open', updatedAt: new Date().toISOString() };
+    });
+  } catch { /* fall through to next source */ }
+}
+
+// Source 2: TWSE MIS API — real-time during market hours, supports TSE + OTC
+async function _tryTwseMis(ids, out, now) {
+  try {
+    // MIS needs prefix: tse_ for TSE, otc_ for OTC (try tse first)
+    const ex_ch = ids.map(id => `tse_${id}.tw`).join('|');
+    const url   = `https://mis.twse.com.tw/stock/api/getStockInfo.jsp?ex_ch=${ex_ch}&json=1&delay=0`;
+    const resp  = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0', 'Referer': 'https://mis.twse.com.tw/' },
+      signal:  AbortSignal.timeout(8000),
+    });
+    if (!resp.ok) return;
+    const body = await resp.json();
+    const rows = body?.msgArray || [];
+
+    rows.forEach(row => {
+      const id    = row.c;
+      const price = parseFloat(row.z !== '-' ? row.z : row.y); // z=last, y=yesterday close
+      if (id && !isNaN(price)) {
+        const prev = parseFloat(row.y) || price;
+        out[id] = {
+          price,
+          change:    parseFloat((price - prev).toFixed(2)),
+          changePct: parseFloat(((price - prev) / prev * 100).toFixed(2)),
+          name:      row.n || id,
+          source:    'twse-mis',
+          updatedAt: new Date().toISOString(),
+        };
+      }
+    });
+
+    // Retry missing as OTC
+    const missing = ids.filter(id => !out[id]);
+    if (missing.length > 0) {
+      const ex_ch2 = missing.map(id => `otc_${id}.tw`).join('|');
+      const r2 = await fetch(
+        `https://mis.twse.com.tw/stock/api/getStockInfo.jsp?ex_ch=${ex_ch2}&json=1&delay=0`,
+        { headers: { 'User-Agent': 'Mozilla/5.0', 'Referer': 'https://mis.twse.com.tw/' }, signal: AbortSignal.timeout(8000) }
+      );
+      if (r2.ok) {
+        const b2  = await r2.json();
+        (b2?.msgArray || []).forEach(row => {
+          const id    = row.c;
+          const price = parseFloat(row.z !== '-' ? row.z : row.y);
+          if (id && !isNaN(price) && !out[id]) {
+            const prev = parseFloat(row.y) || price;
+            out[id] = {
+              price,
+              change:    parseFloat((price - prev).toFixed(2)),
+              changePct: parseFloat(((price - prev) / prev * 100).toFixed(2)),
+              name:      row.n || id,
+              source:    'twse-mis-otc',
+              updatedAt: new Date().toISOString(),
+            };
+          }
+        });
+      }
+    }
+  } catch { /* fall through */ }
+}
+
+// Source 3: Yahoo Finance — requires crumb after 2024 API changes
+async function _tryYahoo(ids, out, now) {
+  try {
+    // Acquire crumb
+    const cookieResp = await fetch('https://finance.yahoo.com/', {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36' },
+      signal:  AbortSignal.timeout(8000),
+    });
+    const setCookie = cookieResp.headers.get('set-cookie') || '';
+    const cookie    = setCookie.split(';')[0];
+
+    const crumbResp = await fetch('https://query1.finance.yahoo.com/v1/test/getcrumb', {
+      headers: { 'User-Agent': 'Mozilla/5.0', 'Cookie': cookie },
+      signal:  AbortSignal.timeout(5000),
+    });
+    if (!crumbResp.ok) return;
+    const crumb = (await crumbResp.text()).trim();
+
+    // Fetch quotes (try .TW then .TWO)
+    const _fetchYahooSymbols = async (symbols) => {
+      const url  = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbols}&crumb=${encodeURIComponent(crumb)}`;
+      const resp = await fetch(url, {
+        headers: { 'User-Agent': 'Mozilla/5.0', 'Cookie': cookie },
+        signal:  AbortSignal.timeout(8000),
+      });
+      if (!resp.ok) return [];
+      const body = await resp.json();
+      return body?.quoteResponse?.result || [];
+    };
+
+    const twSymbols  = ids.map(id => `${id}.TW`).join(',');
+    const results    = await _fetchYahooSymbols(twSymbols);
+    const found      = new Set();
+
+    results.forEach(r => {
+      const id = (r.symbol || '').replace(/\.(TW|TWO)$/, '');
+      if (r.regularMarketPrice) {
+        out[id] = {
+          price:     r.regularMarketPrice,
+          change:    r.regularMarketChange    ?? null,
+          changePct: r.regularMarketChangePercent ?? null,
+          name:      r.shortName || id,
+          source:    'yahoo',
+          updatedAt: new Date().toISOString(),
+        };
+        found.add(id);
+      }
+    });
+
+    // OTC retry
+    const otcIds = ids.filter(id => !found.has(id));
+    if (otcIds.length > 0) {
+      const twoResults = await _fetchYahooSymbols(otcIds.map(id => `${id}.TWO`).join(','));
+      twoResults.forEach(r => {
+        const id = (r.symbol || '').replace(/\.(TW|TWO)$/, '');
+        if (r.regularMarketPrice && !out[id]) {
+          out[id] = {
+            price:     r.regularMarketPrice,
+            change:    r.regularMarketChange    ?? null,
+            changePct: r.regularMarketChangePercent ?? null,
+            name:      r.shortName || id,
+            source:    'yahoo-otc',
+            updatedAt: new Date().toISOString(),
+          };
+        }
+      });
+    }
+  } catch { /* all sources exhausted */ }
+}
 
 // ── LINE Reply helper ─────────────────────────────────────────────────────
 
