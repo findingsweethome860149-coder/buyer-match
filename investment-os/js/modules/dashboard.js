@@ -257,7 +257,7 @@ const DashboardModule = (() => {
                 $${Utils.fmt(w.currentPrice || 0, 2)} ✏️
               </div>
               <div style="font-size:12px;color:var(--muted);margin-top:2px">目標 $${w.targetPrice ? Utils.fmt(w.targetPrice, 2) : '—'}</div>
-              ${diff !== null ? `<div style="font-size:12px;margin-top:2px" class="${met ? 'positive' : diff < 0 ? 'positive' : 'negative'}">${diff > 0 ? '+' : ''}${Utils.fmt(diff, 1)}%</div>` : ''}
+              ${diff !== null ? `<div style="font-size:12px;margin-top:2px" class="${diff <= 0 ? 'positive' : 'negative'}">${diff > 0 ? '+' : ''}${Utils.fmt(diff, 1)}%</div>` : ''}
             </div>
           </div>
         `;
@@ -272,8 +272,7 @@ const DashboardModule = (() => {
       </div>
     `;
 
-    el._allWatchlist = watchlist;
-    el._rows = _rows;
+    DashboardModule._watchCache = { list: watchlist, rows: _rows };
   }
 
   // ── History ───────────────────────────────────────────────────────────────
@@ -337,8 +336,7 @@ const DashboardModule = (() => {
         ${rows}
       </div>
     `;
-    el._allTxs = txs;
-    el._rowFn  = (list) => list.map(tx => {
+    DashboardModule._histCache = { list: txs, rowFn: (list) => list.map(tx => {
       const isTrade = tx.type === 'buy' || tx.type === 'sell';
       const amount  = isTrade ? (tx.shares * tx.price) : tx.cashAmt;
       const sharesFmt = tx.shares % 1 !== 0 ? Utils.fmt(tx.shares, 3) : Utils.fmt(tx.shares);
@@ -361,7 +359,7 @@ const DashboardModule = (() => {
           </div>
         </div>
       `;
-    }).join('');
+    }).join('') };
   }
 
   // ── Settings ──────────────────────────────────────────────────────────────
@@ -462,5 +460,5 @@ const DashboardModule = (() => {
     `;
   }
 
-  return { renderHome, renderPortfolio, renderWatchlist, renderHistory, renderSettings };
+  return { renderHome, renderPortfolio, renderWatchlist, renderHistory, renderSettings, _watchCache: null, _histCache: null };
 })();

@@ -157,11 +157,11 @@ const App = (() => {
     try {
       const tx = _pendingTx;
       if (!tx) return;
-      _pendingTx = null;
 
       if (tx.type === 'deposit' || tx.type === 'withdraw') {
         TransactionModule.add(tx);
         SecurityModule.log(tx.type, `$${tx.cashAmt}`);
+        _pendingTx = null;
         closeModal('modalTxConfirm');
         _clearTxForm();
         NotificationModule.toast(`${tx.type === 'deposit' ? '入金' : '出金'} $${Utils.fmt(tx.cashAmt)} 已記錄`);
@@ -178,6 +178,7 @@ const App = (() => {
       TransactionModule.add(tx);
       PortfolioModule.recalculate(TransactionModule.getAll());
       SecurityModule.log(tx.type, `${tx.symbol} ${tx.shares}股 @${tx.price}`);
+      _pendingTx = null;
       closeModal('modalTxConfirm');
       _clearTxForm();
       NotificationModule.toast(`${tx.type === 'buy' ? '買入' : '賣出'} ${tx.symbol} ${Utils.fmt(tx.shares)} 股已記錄`);
@@ -276,6 +277,7 @@ const App = (() => {
         document.getElementById('txName').value   = w.name;
         if (w.currentPrice) document.getElementById('txPrice').value = w.currentPrice;
         document.getElementById('txType').dispatchEvent(new Event('change'));
+        document.getElementById('txPrice').dispatchEvent(new Event('input'));
       }, 50);
     }
   }
@@ -283,28 +285,28 @@ const App = (() => {
   // ─── Search / filter ──────────────────────────────────────────────────────
 
   function filterWatchlist(q) {
-    const el = document.getElementById('watchlistView');
-    if (!el || !el._allWatchlist) return;
-    const list = q.trim()
-      ? el._allWatchlist.filter(w =>
-          w.symbol.toLowerCase().includes(q.toLowerCase()) ||
-          w.name.toLowerCase().includes(q.toLowerCase()))
-      : el._allWatchlist;
+    const cache = DashboardModule._watchCache;
+    if (!cache) return;
+    const lq   = q.trim().toLowerCase();
+    const list = lq
+      ? cache.list.filter(w => w.symbol.toLowerCase().includes(lq) || w.name.toLowerCase().includes(lq))
+      : cache.list;
     const card = document.getElementById('watchlistRows');
-    if (card) card.innerHTML = `<div class="card-title">觀察清單 <span style="font-size:11px;color:var(--muted)">點股票看分析 · 點價格更新</span></div>${el._rows(list)}`;
+    if (card) card.innerHTML = `<div class="card-title">觀察清單 <span style="font-size:11px;color:var(--muted)">點股票看分析 · 點價格更新</span></div>${cache.rows(list)}`;
   }
 
   function filterHistory(q) {
-    const el = document.getElementById('historyView');
-    if (!el || !el._allTxs) return;
-    const list = q.trim()
-      ? el._allTxs.filter(t =>
-          (t.symbol || '').toLowerCase().includes(q.toLowerCase()) ||
-          (t.name   || '').toLowerCase().includes(q.toLowerCase()) ||
-          (t.date   || '').includes(q))
-      : el._allTxs;
+    const cache = DashboardModule._histCache;
+    if (!cache) return;
+    const lq   = q.trim().toLowerCase();
+    const list = lq
+      ? cache.list.filter(t =>
+          (t.symbol || '').toLowerCase().includes(lq) ||
+          (t.name   || '').toLowerCase().includes(lq) ||
+          (t.date   || '').includes(lq))
+      : cache.list;
     const card = document.getElementById('historyRows');
-    if (card) card.innerHTML = `<div class="card-title">所有交易</div>${el._rowFn(list) || '<div style="padding:16px;color:var(--muted);text-align:center">找不到符合的紀錄</div>'}`;
+    if (card) card.innerHTML = `<div class="card-title">所有交易</div>${cache.rowFn(list) || '<div style="padding:16px;color:var(--muted);text-align:center">找不到符合的紀錄</div>'}`;
   }
 
   function removeWatch(id) {
