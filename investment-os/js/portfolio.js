@@ -7,6 +7,7 @@
  * It does NOT accept direct mutations from Transaction Module.
  */
 const PortfolioModule = (() => {
+  const QTY_EPSILON = 0.0001; // minimum quantity to keep a holding (handles float rounding)
 
   function getHoldings() {
     return DB.Portfolio.getAll();
@@ -41,12 +42,12 @@ const PortfolioModule = (() => {
         } else {
           const costPerShare = h.quantity > 0 ? h.totalCost / h.quantity : 0;
           h.totalCost = Math.max(0, h.totalCost - costPerShare * tx.quantity);
-          h.quantity  = Math.max(0, h.quantity - tx.quantity);
+          h.quantity = Math.max(0, h.quantity - tx.quantity);
         }
       });
 
     const holdings = Object.values(map)
-      .filter(h => h.quantity > 0.0001)
+      .filter(h => h.quantity > QTY_EPSILON)
       .map(h => {
         const prev = priceMap[h.stockId] || {};
         return {

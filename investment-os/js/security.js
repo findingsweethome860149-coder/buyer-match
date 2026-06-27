@@ -8,9 +8,11 @@
  * Future: LINE login, Cloud token, multi-device.
  */
 const SecurityModule = (() => {
-  const AUDIT_KEY  = 'auditLog';
-  const PIN_KEY    = 'pin_hash';
-  const MAX_AUDIT  = 500;
+  const AUDIT_KEY      = 'auditLog';
+  const PIN_KEY        = 'pin_hash';
+  const MAX_AUDIT      = 500;
+  const MAX_PIN_FAILS  = 5;
+  const PIN_LOCKOUT_MS = 30_000; // 30 seconds
 
   // ── Audit log ─────────────────────────────────────────────────────────────
 
@@ -156,12 +158,12 @@ const SecurityModule = (() => {
       } else {
         _failCount++;
         _shake();
-        if (_failCount >= 5) {
+        if (_failCount >= MAX_PIN_FAILS) {
           _locked = true;
           _setError('嘗試次數過多，請 30 秒後再試');
-          setTimeout(() => { _locked = false; _failCount = 0; _setError(''); }, 30000);
+          setTimeout(() => { _locked = false; _failCount = 0; _setError(''); }, PIN_LOCKOUT_MS);
         } else {
-          _setError(`PIN 不正確，還有 ${5 - _failCount} 次機會`);
+          _setError(`PIN 不正確，還有 ${MAX_PIN_FAILS - _failCount} 次機會`);
         }
         setTimeout(() => { _entered = ''; _updateDots(); }, 600);
       }

@@ -60,10 +60,12 @@ const DB = (() => {
 
   // ── Repository: Settings ──────────────────────────────────────────────────
 
+  const DEFAULT_FEE_RATE = 0.1425; // Taiwan broker standard rate (%)
+
   const SETTINGS_DEF = {
     monthlyBudget:  10000,
     reminderDay:    5,
-    defaultFeeRate: 0.1425,
+    defaultFeeRate: DEFAULT_FEE_RATE,
     investmentGoal: '',
     goalAmount:     0,
     pinEnabled:     false,
@@ -74,6 +76,7 @@ const DB = (() => {
   };
 
   const Settings = {
+    DEFAULT_FEE_RATE,
     get()   { return { ...SETTINGS_DEF, ..._get('settings', {}) }; },
     save(s) { _set('settings', s); },
   };

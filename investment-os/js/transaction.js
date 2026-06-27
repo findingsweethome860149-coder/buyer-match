@@ -5,6 +5,7 @@
  * Portfolio recalculates itself from transaction history.
  */
 const TransactionModule = (() => {
+  const TAX_RATE = TAIWAN_SECURITIES_TAX; // 0.3%, sell only
 
   function getAll() {
     return DB.Transactions.getAll();
@@ -18,7 +19,7 @@ const TransactionModule = (() => {
     const isTrade = tx.type === 'buy' || tx.type === 'sell';
     if (isTrade) {
       if (tx.type === 'sell' && tx.tax === undefined) {
-        tx.tax = Math.round(tx.quantity * tx.price * 0.003);
+        tx.tax = Math.round(tx.quantity * tx.price * TAX_RATE);
       }
       if (tx.total === undefined) {
         tx.total = tx.type === 'buy'

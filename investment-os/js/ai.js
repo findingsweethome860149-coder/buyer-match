@@ -7,6 +7,17 @@
  * All output must include reasoning — never just a conclusion.
  */
 const AIModule = (() => {
+  // Thresholds — named so rule changes are made in one place
+  const SCORE_ZERO_RATIO      = 1.3;   // price/target ratio at which score reaches 0
+  const CONCENTRATION_DANGER  = 80;    // % single holding → heavy deduction
+  const CONCENTRATION_CAUTION = 60;    // % single holding → light deduction
+  const CASH_RATIO_MIN        = 10;    // % cash below this → caution
+  const TRADE_FREQ_HIGH       = 8;     // trades/month → flag
+  const TRADE_FREQ_MID        = 4;     // trades/month → note
+  const HOLDING_DAYS_SHORT    = 30;    // avg days < this → short-term flag
+  const HOLDING_DAYS_LONG     = 180;   // avg days > this → long-term good / thesis review
+  const CHASE_HIGH_RATIO      = 1.2;   // buy price / avgCost ratio considered "chasing"
+  const QTY_EPSILON           = 0.0001; // minimum quantity to keep a holding
 
   // ── Score ─────────────────────────────────────────────────────────────────
   // 0–100 proximity-to-target-price score.
@@ -16,8 +27,8 @@ const AIModule = (() => {
     if (!currentPrice || !targetPrice) return 50;
     if (currentPrice <= targetPrice) return 100;
     const ratio = currentPrice / targetPrice;
-    if (ratio >= 1.3) return 0;
-    return Math.max(0, Math.round(100 - (ratio - 1) / 0.3 * 100));
+    if (ratio >= SCORE_ZERO_RATIO) return 0;
+    return Math.max(0, Math.round(100 - (ratio - 1) / (SCORE_ZERO_RATIO - 1) * 100));
   }
 
   /**
@@ -48,31 +59,31 @@ const AIModule = (() => {
       const pct = totalVal > 0 ? h.quantity * (h.currentPrice || h.avgCost) / totalVal * 100 : 0;
       if (pct > maxPct) maxPct = pct;
     });
-    if (maxPct > 80) { score -= 30; reasons.push(`最大持股集中度 ${Utils.fmt(maxPct, 1)}%，集中度過高（建議 < 60%）`); }
-    else if (maxPct > 60) { score -= 15; reasons.push(`最大持股集中度 ${Utils.fmt(maxPct, 1)}%，略為集中（建議 < 60%）`); }
+    if (maxPct > CONCENTRATION_DANGER)  { score -= 30; reasons.push(`最大持股集中度 ${Utils.fmt(maxPct, 1)}%，集中度過高（建議 < ${CONCENTRATION_CAUTION}%）`); }
+    else if (maxPct > CONCENTRATION_CAUTION) { score -= 15; reasons.push(`最大持股集中度 ${Utils.fmt(maxPct, 1)}%，略為集中（建議 < ${CONCENTRATION_CAUTION}%）`); }
     else reasons.push(`持股分散度良好，最大單一部位 ${Utils.fmt(maxPct, 1)}%`);
 
     // 2. Cash ratio: < 10% of total is a yellow flag
     const cashBal = totalAssets - totalVal;
     const cashPct = totalAssets > 0 ? cashBal / totalAssets * 100 : 0;
     if (cashPct < 0) { score -= 20; reasons.push('現金餘額為負，請確認入金記錄'); }
-    else if (cashPct < 10) { score -= 10; reasons.push(`現金比例 ${Utils.fmt(cashPct, 1)}%，備用金偏低`); }
+    else if (cashPct < CASH_RATIO_MIN) { score -= 10; reasons.push(`現金比例 ${Utils.fmt(cashPct, 1)}%，備用金偏低`); }
     else reasons.push(`現金比例 ${Utils.fmt(cashPct, 1)}%，流動性充足`);
 
     // 3. Trading frequency: > 8 trades/month is a flag
     const trades = transactions.filter(t => t.type === 'buy' || t.type === 'sell');
     const months = _monthsSinceFirst(trades);
     const freq   = months > 0 ? trades.length / months : trades.length;
-    if (freq > 8) { score -= 20; reasons.push(`平均每月交易 ${Utils.fmt(freq, 1)} 次，頻率偏高`); }
-    else if (freq > 4) { score -= 5; reasons.push(`平均每月交易 ${Utils.fmt(freq, 1)} 次，交易頻率適中`); }
+    if (freq > TRADE_FREQ_HIGH) { score -= 20; reasons.push(`平均每月交易 ${Utils.fmt(freq, 1)} 次，頻率偏高`); }
+    else if (freq > TRADE_FREQ_MID) { score -= 5; reasons.push(`平均每月交易 ${Utils.fmt(freq, 1)} 次，交易頻率適中`); }
     else reasons.push(`平均每月交易 ${Utils.fmt(freq, 1)} 次，長期持有傾向良好`);
 
     // 4. Long-term holding: avg holding duration
     const avgDays = _avgHoldingDays(transactions);
     if (avgDays !== null) {
-      if (avgDays < 30)       { score -= 15; reasons.push(`平均持有 ${Math.round(avgDays)} 天，短線操作傾向明顯`); }
-      else if (avgDays < 180) {               reasons.push(`平均持有 ${Math.round(avgDays)} 天，持有時間尚可`); }
-      else                    {               reasons.push(`平均持有 ${Math.round(avgDays)} 天，長期持有策略執行中`); }
+      if (avgDays < HOLDING_DAYS_SHORT)      { score -= 15; reasons.push(`平均持有 ${Math.round(avgDays)} 天，短線操作傾向明顯`); }
+      else if (avgDays < HOLDING_DAYS_LONG)  {               reasons.push(`平均持有 ${Math.round(avgDays)} 天，持有時間尚可`); }
+      else                                   {               reasons.push(`平均持有 ${Math.round(avgDays)} 天，長期持有策略執行中`); }
     }
 
     return { score: Math.max(0, Math.min(100, score)), reasons };
@@ -89,7 +100,7 @@ const AIModule = (() => {
     const buyHighCount = trades.filter(t => {
       if (t.type !== 'buy') return false;
       const h = holdings.find(x => x.stockId === t.stockId);
-      return h && t.price > h.avgCost * 1.2;
+      return h && t.price > h.avgCost * CHASE_HIGH_RATIO;
     }).length;
     if (buyHighCount > 0) {
       insights.push({ icon: '⚠️', text: `有 ${buyHighCount} 次在均價 20% 以上加碼的紀錄，留意追高風險。` });
@@ -98,7 +109,7 @@ const AIModule = (() => {
     // Trading frequency per month
     const months = _monthsSinceFirst(trades);
     const freq   = months > 0 ? trades.length / months : trades.length;
-    if (freq > 8) {
+    if (freq > TRADE_FREQ_HIGH) {
       insights.push({ icon: '🔄', text: `每月平均 ${Utils.fmt(freq, 1)} 次交易，頻繁交易會增加手續費成本，建議降低。` });
     } else if (freq <= 2 && trades.length > 0) {
       insights.push({ icon: '🏆', text: `每月平均 ${Utils.fmt(freq, 1)} 次交易，低頻率是紀律投資的好徵兆。` });
@@ -133,7 +144,7 @@ const AIModule = (() => {
       if (!h) return; // already sold
       const daysSince = _daysSince(tx.date);
       // Flag if bought with thesis and held for > 180 days
-      if (daysSince > 180) {
+      if (daysSince > HOLDING_DAYS_LONG) {
         alerts.push({
           stockId:   tx.stockId,
           stockName: tx.stockName,
@@ -183,7 +194,7 @@ const AIModule = (() => {
       const totalVal = holdings.reduce((s, h) => s + h.quantity * (h.currentPrice || h.avgCost), 0);
       holdings.forEach(h => {
         const pct = totalVal > 0 ? h.quantity * (h.currentPrice || h.avgCost) / totalVal * 100 : 0;
-        if (pct > 60) {
+        if (pct > CONCENTRATION_CAUTION) {
           items.push({
             icon: '⚖️', priority: 3,
             text: `<strong>${h.stockId} ${h.stockName}</strong> 佔投資組合 ${Utils.fmt(pct, 1)}%，集中度偏高，長期持有風險較大。`,
@@ -262,7 +273,7 @@ const AIModule = (() => {
     // 3. Thesis status (if we have holding with thesis from transactions)
     if (holdingItem) {
       const holdingDays = holdingItem.priceUpdatedAt ? _daysSince(holdingItem.priceUpdatedAt) : null;
-      if (holdingDays !== null && holdingDays > 180) {
+      if (holdingDays !== null && holdingDays > HOLDING_DAYS_LONG) {
         points.push({ icon: '🔍', text: `持有超過 ${Math.round(holdingDays)} 天，建議定期重新確認買進理由是否仍成立。` });
       }
     }
@@ -321,7 +332,7 @@ const AIModule = (() => {
             durations.push(Math.abs(days));
             buy.quantity -= used;
             remaining    -= used;
-            if (buy.quantity <= 0.0001) queue.shift();
+            if (buy.quantity <= QTY_EPSILON) queue.shift();
           }
         }
       });

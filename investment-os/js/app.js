@@ -129,7 +129,7 @@ const App = (() => {
       if (!quantity || quantity <= 0) { NotificationModule.toast('請填寫股數'); return; }
       if (!price    || price    <= 0) { NotificationModule.toast('請填寫成交價格'); return; }
 
-      const tax   = type === 'sell' ? Math.round(quantity * price * 0.003) : 0;
+      const tax   = type === 'sell' ? Math.round(quantity * price * TAIWAN_SECURITIES_TAX) : 0;
       const total = type === 'buy'
         ? quantity * price + fee
         : quantity * price - fee - tax;
@@ -570,7 +570,7 @@ const App = (() => {
       const s = getSettings();
       s.monthlyBudget  = Math.round(budget);
       s.reminderDay    = parseInt(document.getElementById('ob_day').value);
-      s.defaultFeeRate = parseFloat(document.getElementById('ob_fee').value) || 0.1425;
+      s.defaultFeeRate = parseFloat(document.getElementById('ob_fee').value) || DB.Settings.DEFAULT_FEE_RATE;
       saveSettings(s);
     }
 
