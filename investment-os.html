@@ -1,0 +1,1342 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>AI Investment OS Lite</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --border: #2e3248;
+    --accent: #4f6ef7;
+    --accent2: #7c5cfc;
+    --green: #22c55e;
+    --red: #ef4444;
+    --yellow: #eab308;
+    --text: #e8eaf0;
+    --muted: #8b90a8;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+    min-height: 100vh;
+    max-width: 430px;
+    margin: 0 auto;
+    padding-bottom: 80px;
+  }
+
+  /* ── BOTTOM NAV ── */
+  .bottom-nav {
+    position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+    width: 100%; max-width: 430px;
+    background: var(--surface); border-top: 1px solid var(--border);
+    display: flex; padding: 8px 0 12px; z-index: 100;
+  }
+  .nav-item {
+    flex: 1; display: flex; flex-direction: column; align-items: center;
+    gap: 4px; cursor: pointer; padding: 6px 0;
+    color: var(--muted); font-size: 11px; transition: color .2s;
+  }
+  .nav-item.active { color: var(--accent); }
+  .nav-item svg { width: 22px; height: 22px; }
+
+  /* ── HEADER ── */
+  .header {
+    padding: 20px 20px 0;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .header h1 { font-size: 20px; font-weight: 700; }
+  .header .date { font-size: 13px; color: var(--muted); }
+  .logo-dot {
+    width: 8px; height: 8px; border-radius: 50%; background: var(--accent);
+    display: inline-block; margin-right: 6px; animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  .ai-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: linear-gradient(135deg,rgba(79,110,247,.2),rgba(124,92,252,.2));
+    border: 1px solid rgba(79,110,247,.3); border-radius: 20px;
+    padding: 4px 10px; font-size: 12px; font-weight: 600; color: var(--accent);
+  }
+
+  /* ── PAGES ── */
+  .page { display: none; padding: 16px 20px; }
+  .page.active { display: block; }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px; margin-bottom: 12px;
+  }
+  .card-title {
+    font-size: 12px; text-transform: uppercase; letter-spacing: .08em;
+    color: var(--muted); margin-bottom: 10px;
+  }
+
+  /* ── DAILY BRIEF ── */
+  .brief-status {
+    text-align: center; padding: 28px 16px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); margin-bottom: 12px;
+  }
+  .brief-icon { font-size: 48px; margin-bottom: 12px; }
+  .brief-title { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+  .brief-sub { font-size: 14px; color: var(--muted); line-height: 1.6; }
+  .status-calm { border-color: var(--green); }
+  .status-attention { border-color: var(--yellow); }
+  .status-action { border-color: var(--accent); }
+
+  /* ── CHIPS ── */
+  .chip {
+    display: inline-block; padding: 3px 9px; border-radius: 20px;
+    font-size: 11px; font-weight: 600; margin: 2px 2px 2px 0;
+  }
+  .chip-green  { background: rgba(34,197,94,.15);  color: var(--green); }
+  .chip-red    { background: rgba(239,68,68,.15);   color: var(--red); }
+  .chip-blue   { background: rgba(79,110,247,.15);  color: var(--accent); }
+  .chip-yellow { background: rgba(234,179,8,.15);   color: var(--yellow); }
+  .chip-purple { background: rgba(124,92,252,.15);  color: var(--accent2); }
+  .chip-gray   { background: rgba(139,144,168,.15); color: var(--muted); }
+
+  /* ── ROWS ── */
+  .stock-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 0; border-bottom: 1px solid var(--border);
+  }
+  .stock-row:last-child { border-bottom: none; }
+  .stock-symbol { font-size: 16px; font-weight: 700; }
+  .stock-name { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .stock-right { text-align: right; }
+  .stock-value { font-size: 15px; font-weight: 600; }
+  .stock-sub { font-size: 12px; margin-top: 2px; }
+  .positive { color: var(--green); }
+  .negative { color: var(--red); }
+
+  .total-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+  .total-label { font-size: 13px; color: var(--muted); }
+  .total-value { font-size: 24px; font-weight: 700; }
+
+  /* ── WATCHLIST ── */
+  .watch-row {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    padding: 12px 0; border-bottom: 1px solid var(--border);
+  }
+  .watch-row:last-child { border-bottom: none; }
+  .watch-price { font-size: 16px; font-weight: 600; cursor: pointer; }
+  .target-met { color: var(--green); font-weight: 700; }
+
+  /* ── TRANSACTIONS ── */
+  .tx-row {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    padding: 12px 0; border-bottom: 1px solid var(--border);
+  }
+  .tx-row:last-child { border-bottom: none; }
+  .tx-date { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+  .tx-desc { font-size: 14px; }
+  .tx-amount { font-size: 15px; font-weight: 600; text-align: right; }
+  .tx-sub { font-size: 12px; color: var(--muted); text-align: right; margin-top: 2px; }
+
+  /* ── FORMS ── */
+  .form-group { margin-bottom: 14px; }
+  .form-label { font-size: 13px; color: var(--muted); margin-bottom: 6px; display: block; }
+  .form-input {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); color: var(--text); font-size: 15px;
+    padding: 10px 12px; outline: none; transition: border-color .2s;
+  }
+  .form-input:focus { border-color: var(--accent); }
+  select.form-input { cursor: pointer; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .form-hint { font-size: 11px; color: var(--muted); margin-top: 5px; }
+
+  /* ── BUTTONS ── */
+  .btn {
+    width: 100%; padding: 13px; border-radius: var(--radius-sm);
+    font-size: 15px; font-weight: 600; border: none; cursor: pointer;
+    transition: opacity .2s;
+  }
+  .btn:active { opacity: .8; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-danger  { background: rgba(239,68,68,.15); color: var(--red); border: 1px solid rgba(239,68,68,.3); }
+  .btn-sm {
+    padding: 5px 11px; border-radius: 6px; font-size: 12px; font-weight: 600;
+    border: none; cursor: pointer; background: var(--surface2); color: var(--muted);
+  }
+  .btn-outline {
+    width: 100%; padding: 11px; border-radius: var(--radius-sm);
+    font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity .2s;
+    background: transparent; border: 1px solid var(--border); color: var(--text);
+  }
+
+  /* ── FAB ── */
+  .fab {
+    position: fixed; bottom: 88px;
+    right: calc(50% - 215px + 20px);
+    width: 52px; height: 52px; border-radius: 50%;
+    background: var(--accent); color: #fff; border: none;
+    font-size: 24px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 20px rgba(79,110,247,.4); z-index: 99;
+    transition: transform .2s;
+  }
+  .fab:active { transform: scale(.93); }
+
+  /* ── MODALS ── */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,.65); z-index: 200; align-items: flex-end;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface); border-radius: var(--radius) var(--radius) 0 0;
+    padding: 20px 20px 36px; width: 100%; max-width: 430px;
+    margin: 0 auto; max-height: 90vh; overflow-y: auto;
+  }
+  .modal-title {
+    font-size: 17px; font-weight: 700; margin-bottom: 18px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .modal-close {
+    background: none; border: none; color: var(--muted);
+    font-size: 22px; cursor: pointer; padding: 0 4px;
+  }
+
+  /* ── INSIGHT ── */
+  .insight-item {
+    display: flex; gap: 10px; padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .insight-item:last-child { border-bottom: none; }
+  .insight-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+  .insight-text { font-size: 14px; line-height: 1.5; color: var(--muted); }
+  .insight-text strong { color: var(--text); }
+  .insight-decision {
+    margin-top: 6px; padding: 6px 8px;
+    background: rgba(79,110,247,.08); border-radius: 6px;
+    font-size: 12px; color: var(--accent);
+  }
+
+  /* ── PROGRESS ── */
+  .progress-bar { background: var(--surface2); border-radius: 4px; height: 5px; overflow: hidden; margin-top: 6px; }
+  .progress-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg,var(--accent),var(--accent2)); transition: width .6s; }
+
+  /* ── EMPTY ── */
+  .empty { text-align: center; padding: 48px 20px; color: var(--muted); font-size: 14px; line-height: 1.8; }
+  .empty-icon { font-size: 44px; margin-bottom: 12px; }
+
+  /* ── ONBOARDING ── */
+  #onboarding {
+    display: none; position: fixed; inset: 0;
+    background: var(--bg); z-index: 500;
+    padding: 40px 28px; overflow-y: auto;
+  }
+  #onboarding.show { display: block; }
+  .onboard-step { display: none; }
+  .onboard-step.active { display: block; }
+  .onboard-num {
+    font-size: 11px; color: var(--muted); letter-spacing: .1em;
+    text-transform: uppercase; margin-bottom: 8px;
+  }
+  .onboard-title { font-size: 26px; font-weight: 800; line-height: 1.3; margin-bottom: 12px; }
+  .onboard-desc { font-size: 14px; color: var(--muted); line-height: 1.7; margin-bottom: 32px; }
+  .onboard-dots { display: flex; gap: 6px; justify-content: center; margin-bottom: 24px; }
+  .onboard-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--border); }
+  .onboard-dot.active { background: var(--accent); width: 18px; border-radius: 3px; }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed; bottom: 100px; left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: #333; color: #fff; padding: 10px 20px;
+    border-radius: 24px; font-size: 14px; opacity: 0;
+    transition: all .3s; z-index: 999; white-space: nowrap;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ── SETTINGS ── */
+  .setting-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 0; border-bottom: 1px solid var(--border);
+  }
+  .setting-row:last-child { border-bottom: none; }
+  .setting-label { font-size: 15px; }
+  .setting-value { font-size: 14px; color: var(--muted); cursor: pointer; color: var(--accent); }
+
+  /* ── LINE PLACEHOLDER ── */
+  .line-card {
+    background: linear-gradient(135deg, #06C755 0%, #00A544 100%);
+    border-radius: var(--radius); padding: 20px; margin-bottom: 12px;
+    position: relative; overflow: hidden;
+  }
+  .line-card::after {
+    content: ''; position: absolute; right: -20px; top: -20px;
+    width: 100px; height: 100px; border-radius: 50%;
+    background: rgba(255,255,255,.08);
+  }
+  .line-card-title { font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 6px; }
+  .line-card-sub { font-size: 13px; color: rgba(255,255,255,.8); line-height: 1.5; }
+  .line-badge {
+    display: inline-block; background: rgba(255,255,255,.2);
+    border-radius: 12px; padding: 3px 10px;
+    font-size: 11px; color: #fff; margin-top: 10px;
+  }
+</style>
+</head>
+<body>
+
+<!-- ── ONBOARDING ── -->
+<div id="onboarding">
+  <div class="onboard-dots">
+    <div class="onboard-dot active" id="od0"></div>
+    <div class="onboard-dot" id="od1"></div>
+    <div class="onboard-dot" id="od2"></div>
+  </div>
+
+  <div class="onboard-step active" id="os0">
+    <div class="onboard-num">歡迎使用</div>
+    <div class="onboard-title">每天 3 分鐘<br>建立投資紀律</div>
+    <div class="onboard-desc">
+      AI Investment OS Lite 是一位陪跑教練。<br>
+      不報明牌，不替你下決定。<br>
+      只陪你建立屬於自己的投資紀律，<br>
+      慢慢累積第一桶金。
+    </div>
+    <button class="btn btn-primary" onclick="nextOnboard()">開始設定</button>
+  </div>
+
+  <div class="onboard-step" id="os1">
+    <div class="onboard-num">Step 1 / 2</div>
+    <div class="onboard-title">設定投資目標</div>
+    <div class="onboard-desc">告訴我你的投資計畫，我才能給你最適合的提醒。</div>
+    <div class="form-group">
+      <label class="form-label">每月可投入金額（元）</label>
+      <input class="form-input" id="ob_budget" type="number" placeholder="例：10000" min="1">
+    </div>
+    <div class="form-group">
+      <label class="form-label">每月定期投入提醒日</label>
+      <select class="form-input" id="ob_day">
+        <option value="1">每月 1 日</option>
+        <option value="5" selected>每月 5 日</option>
+        <option value="10">每月 10 日</option>
+        <option value="15">每月 15 日</option>
+        <option value="20">每月 20 日</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">預設手續費率（%）</label>
+      <input class="form-input" id="ob_fee" type="number" placeholder="例：0.1425" step="0.0001" value="0.1425" min="0">
+      <div class="form-hint">台灣券商一般為 0.1425%，折扣後約 0.07%</div>
+    </div>
+    <button class="btn btn-primary" onclick="nextOnboard()">下一步</button>
+  </div>
+
+  <div class="onboard-step" id="os2">
+    <div class="onboard-num">Step 2 / 2</div>
+    <div class="onboard-title">準備好了</div>
+    <div class="onboard-desc">
+      接下來你可以：<br><br>
+      ① 加入想追蹤的股票到觀察清單<br>
+      ② 入金並新增第一筆買入交易<br>
+      ③ 每天查看 Dashboard<br><br>
+      記住：每一筆交易都值得記錄原因。<br>
+      這是建立投資紀律最重要的一步。
+    </div>
+    <button class="btn btn-primary" onclick="finishOnboard()">開始使用</button>
+  </div>
+</div>
+
+<!-- ── HEADER ── -->
+<div class="header">
+  <div>
+    <h1><span class="logo-dot"></span>Investment OS</h1>
+    <div class="date" id="headerDate"></div>
+  </div>
+  <span class="ai-badge">✦ AI</span>
+</div>
+
+<!-- ── PAGES ── -->
+<div id="page-home" class="page active">
+  <div id="dailyBrief"></div>
+  <div id="portfolioHome"></div>
+  <div id="watchlistHome"></div>
+  <div id="remindersHome"></div>
+</div>
+
+<div id="page-portfolio" class="page">
+  <div id="portfolioView"></div>
+</div>
+
+<div id="page-watchlist" class="page">
+  <div id="watchlistView"></div>
+</div>
+
+<div id="page-history" class="page">
+  <div id="historyView"></div>
+</div>
+
+<div id="page-settings" class="page">
+  <div id="settingsView"></div>
+</div>
+
+<!-- ── FAB ── -->
+<button class="fab" id="fabBtn" title="新增">＋</button>
+
+<!-- ── BOTTOM NAV ── -->
+<nav class="bottom-nav">
+  <div class="nav-item active" data-page="home">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+    今日
+  </div>
+  <div class="nav-item" data-page="portfolio">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>
+    持倉
+  </div>
+  <div class="nav-item" data-page="watchlist">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+    觀察
+  </div>
+  <div class="nav-item" data-page="history">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    紀錄
+  </div>
+  <div class="nav-item" data-page="settings">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+    設定
+  </div>
+</nav>
+
+<!-- ── MODAL: TRANSACTION ── -->
+<div class="modal-overlay" id="modalTx">
+  <div class="modal">
+    <div class="modal-title">
+      <span id="modalTxTitle">新增交易</span>
+      <button class="modal-close" onclick="closeModal('modalTx')">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">交易類型</label>
+      <select class="form-input" id="txType" onchange="onTxTypeChange()">
+        <option value="buy">買入</option>
+        <option value="sell">賣出</option>
+        <option value="deposit">入金</option>
+        <option value="withdraw">出金</option>
+      </select>
+    </div>
+    <div id="txStockFields">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">股票代號</label>
+          <input class="form-input" id="txSymbol" placeholder="例：0050" maxlength="10">
+        </div>
+        <div class="form-group">
+          <label class="form-label">股票名稱</label>
+          <input class="form-input" id="txName" placeholder="例：台灣50">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">股數（支援零股）</label>
+          <input class="form-input" id="txShares" type="number" placeholder="例：100" min="0.001" step="any">
+        </div>
+        <div class="form-group">
+          <label class="form-label">成交價格（元）</label>
+          <input class="form-input" id="txPrice" type="number" placeholder="例：185" step="0.01" min="0">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">手續費（元）</label>
+        <input class="form-input" id="txFee" type="number" placeholder="自動計算，可手動修改" step="1" min="0">
+        <div class="form-hint">買入手續費；賣出加計 0.3% 證交稅</div>
+      </div>
+    </div>
+    <div id="txCashFields" style="display:none">
+      <div class="form-group">
+        <label class="form-label">金額（元）</label>
+        <input class="form-input" id="txCashAmt" type="number" placeholder="例：50000" min="1">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">日期</label>
+      <input class="form-input" id="txDate" type="date">
+    </div>
+    <div class="form-group">
+      <label class="form-label">交易原因（選填）</label>
+      <input class="form-input" id="txReason" placeholder="例：定期定額、目標價達到、長期持有計畫">
+      <div class="form-hint">記錄理由有助於日後回顧決策，建議填寫。</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">備註（選填）</label>
+      <input class="form-input" id="txNote" placeholder="其他補充說明">
+    </div>
+    <button class="btn btn-primary" onclick="submitTransaction()">確認新增</button>
+  </div>
+</div>
+
+<!-- ── MODAL: WATCHLIST ADD ── -->
+<div class="modal-overlay" id="modalWatch">
+  <div class="modal">
+    <div class="modal-title">
+      <span>加入觀察清單</span>
+      <button class="modal-close" onclick="closeModal('modalWatch')">✕</button>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">股票代號</label>
+        <input class="form-input" id="watchSymbol" placeholder="例：2330" maxlength="10">
+      </div>
+      <div class="form-group">
+        <label class="form-label">股票名稱</label>
+        <input class="form-input" id="watchName" placeholder="例：台積電">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">現價（元）</label>
+        <input class="form-input" id="watchCurrent" type="number" placeholder="例：920" step="0.01" min="0">
+      </div>
+      <div class="form-group">
+        <label class="form-label">目標買入價（元）</label>
+        <input class="form-input" id="watchTarget" type="number" placeholder="例：850" step="0.01" min="0">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">加入觀察的理由（選填）</label>
+      <input class="form-input" id="watchNote" placeholder="例：等待回調再買、追蹤基本面">
+    </div>
+    <button class="btn btn-primary" onclick="addWatchItem()">加入觀察</button>
+  </div>
+</div>
+
+<!-- ── MODAL: UPDATE PRICE ── -->
+<div class="modal-overlay" id="modalUpdatePrice">
+  <div class="modal">
+    <div class="modal-title">
+      <span id="updatePriceTitle">更新現價</span>
+      <button class="modal-close" onclick="closeModal('modalUpdatePrice')">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">現在市價（元）</label>
+      <input class="form-input" id="updatePriceValue" type="number" step="0.01" min="0">
+    </div>
+    <input type="hidden" id="updatePriceId">
+    <input type="hidden" id="updatePriceCtx">
+    <button class="btn btn-primary" onclick="confirmUpdatePrice()">確認更新</button>
+  </div>
+</div>
+
+<!-- ── TOAST ── -->
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+
+// ═══════════════════════════════════════════════
+//  DATA LAYER
+// ═══════════════════════════════════════════════
+const DB = {
+  get(k, d) { try { return JSON.parse(localStorage.getItem('ios_' + k)) ?? d; } catch { return d; } },
+  set(k, v) { localStorage.setItem('ios_' + k, JSON.stringify(v)); }
+};
+
+const State = {
+  get ready()        { return DB.get('ready', false); },
+  set ready(v)       { DB.set('ready', v); },
+  get portfolio()    { return DB.get('portfolio', []); },
+  set portfolio(v)   { DB.set('portfolio', v); },
+  get watchlist()    { return DB.get('watchlist', []); },
+  set watchlist(v)   { DB.set('watchlist', v); },
+  get transactions() { return DB.get('transactions', []); },
+  set transactions(v){ DB.set('transactions', v); },
+  get settings()     { return DB.get('settings', { monthlyBudget: 10000, reminderDay: 5, defaultFeeRate: 0.1425 }); },
+  set settings(v)    { DB.set('settings', v); },
+};
+
+// ═══════════════════════════════════════════════
+//  COMPUTED FINANCIALS
+// ═══════════════════════════════════════════════
+
+/** Cash balance = deposits – withdrawals – buy costs + sell proceeds (after fees) */
+function getCashBalance() {
+  return State.transactions.reduce((bal, tx) => {
+    if (tx.type === 'deposit')  return bal + tx.cashAmt;
+    if (tx.type === 'withdraw') return bal - tx.cashAmt;
+    if (tx.type === 'buy')      return bal - (tx.shares * tx.price + (tx.fee || 0));
+    if (tx.type === 'sell')     return bal + (tx.shares * tx.price - (tx.fee || 0));
+    return bal;
+  }, 0);
+}
+
+/** Portfolio total market value */
+function getPortfolioValue() {
+  return State.portfolio.reduce((s, h) => s + h.shares * (h.currentPrice || h.avgCost), 0);
+}
+
+/** Total assets = cash + portfolio market value */
+function getTotalAssets() {
+  return getCashBalance() + getPortfolioValue();
+}
+
+/** Realized P&L from sell transactions — tracked per trade against avg cost at time of sale */
+function getRealizedPnL() {
+  return State.transactions
+    .filter(tx => tx.type === 'sell' && tx.realizedPnL !== undefined)
+    .reduce((s, tx) => s + tx.realizedPnL, 0);
+}
+
+// ═══════════════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════════════
+function fmt(n, d = 0) {
+  if (n === undefined || n === null || isNaN(n)) return '—';
+  return n.toLocaleString('zh-TW', { minimumFractionDigits: d, maximumFractionDigits: d });
+}
+function uid() { return Date.now() + Math.random().toString(36).slice(2, 7); }
+function pnlCls(v) { return v >= 0 ? 'positive' : 'negative'; }
+function pnlSign(v) { return v >= 0 ? '+' : ''; }
+
+function showToast(msg, ms = 2400) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), ms);
+}
+
+function today() { return new Date().toISOString().slice(0, 10); }
+
+// ═══════════════════════════════════════════════
+//  ONBOARDING
+// ═══════════════════════════════════════════════
+let obStep = 0;
+
+function showOnboarding() {
+  document.getElementById('onboarding').classList.add('show');
+}
+
+function updateObDots() {
+  for (let i = 0; i < 3; i++) {
+    document.getElementById('os' + i).classList.toggle('active', i === obStep);
+    document.getElementById('od' + i).classList.toggle('active', i === obStep);
+  }
+}
+
+function nextOnboard() {
+  if (obStep === 1) {
+    const budget = parseFloat(document.getElementById('ob_budget').value);
+    if (!budget || budget <= 0) { showToast('請輸入每月投資金額'); return; }
+    const s = State.settings;
+    s.monthlyBudget = Math.round(budget);
+    s.reminderDay = parseInt(document.getElementById('ob_day').value);
+    s.defaultFeeRate = parseFloat(document.getElementById('ob_fee').value) || 0.1425;
+    State.settings = s;
+  }
+  obStep++;
+  updateObDots();
+}
+
+function finishOnboard() {
+  State.ready = true;
+  document.getElementById('onboarding').classList.remove('show');
+  renderCurrentPage();
+}
+
+// ═══════════════════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════════════════
+let currentPage = 'home';
+
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    currentPage = item.dataset.page;
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    item.classList.add('active');
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('page-' + currentPage).classList.add('active');
+    renderCurrentPage();
+  });
+});
+
+function renderCurrentPage() {
+  if (currentPage === 'home')      renderHome();
+  else if (currentPage === 'portfolio') renderPortfolio();
+  else if (currentPage === 'watchlist') renderWatchlist();
+  else if (currentPage === 'history')   renderHistory();
+  else if (currentPage === 'settings')  renderSettings();
+}
+
+// ═══════════════════════════════════════════════
+//  FAB
+// ═══════════════════════════════════════════════
+document.getElementById('fabBtn').addEventListener('click', () => {
+  if (currentPage === 'watchlist') openModal('modalWatch');
+  else openModal('modalTx');
+});
+
+// ═══════════════════════════════════════════════
+//  MODALS
+// ═══════════════════════════════════════════════
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+  if (id === 'modalTx') {
+    document.getElementById('txDate').value = today();
+    onTxTypeChange();
+  }
+}
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+});
+
+function onTxTypeChange() {
+  const type = document.getElementById('txType').value;
+  const isCash = type === 'deposit' || type === 'withdraw';
+  document.getElementById('txStockFields').style.display = isCash ? 'none' : '';
+  document.getElementById('txCashFields').style.display  = isCash ? '' : 'none';
+  document.getElementById('modalTxTitle').textContent =
+    { buy:'買入交易', sell:'賣出交易', deposit:'入金', withdraw:'出金' }[type];
+}
+
+// Auto-calculate fee when shares/price change
+['txShares','txPrice'].forEach(id => {
+  document.getElementById(id).addEventListener('input', () => {
+    const shares = parseFloat(document.getElementById('txShares').value) || 0;
+    const price  = parseFloat(document.getElementById('txPrice').value) || 0;
+    const type   = document.getElementById('txType').value;
+    const feeRate = (State.settings.defaultFeeRate || 0.1425) / 100;
+    if (shares && price) {
+      const amount = shares * price;
+      let fee = Math.max(1, Math.round(amount * feeRate));
+      if (type === 'sell') fee += Math.round(amount * 0.003); // 證交稅 0.3%
+      document.getElementById('txFee').value = fee;
+    }
+  });
+});
+
+// ═══════════════════════════════════════════════
+//  AI ENGINE
+// ═══════════════════════════════════════════════
+function generateAI() {
+  const portfolio = State.portfolio;
+  const watchlist = State.watchlist;
+  const settings  = State.settings;
+  const items = [];
+  let actionCount = 0;
+
+  // 1. Watchlist target price reached
+  watchlist.forEach(w => {
+    if (w.currentPrice && w.targetPrice && w.currentPrice <= w.targetPrice) {
+      items.push({
+        icon: '🎯', priority: 1,
+        text: `<strong>${w.symbol} ${w.name}</strong> 現價 $${fmt(w.currentPrice, 2)} 已達你的目標買入價 $${fmt(w.targetPrice, 2)}。` +
+              (w.note ? `<br><span style="font-size:12px;color:var(--muted)">當初理由：${w.note}</span>` : ''),
+        decision: '是否依計畫買入，由你決定。'
+      });
+      actionCount++;
+    }
+  });
+
+  // 2. Monthly DCA reminder
+  const day = new Date().getDate();
+  if (day >= settings.reminderDay && day <= settings.reminderDay + 4) {
+    items.push({
+      icon: '📅', priority: 2,
+      text: `本月定期定額提醒日到了。你設定的每月預算是 <strong>$${fmt(settings.monthlyBudget)}</strong>，確認是否已完成本月投入。`,
+      decision: '是否執行，由你決定。'
+    });
+    actionCount++;
+  }
+
+  // 3. Concentration risk
+  if (portfolio.length > 0) {
+    const totalVal = portfolio.reduce((s, h) => s + h.shares * (h.currentPrice || h.avgCost), 0);
+    portfolio.forEach(h => {
+      const pct = (h.shares * (h.currentPrice || h.avgCost)) / totalVal * 100;
+      if (pct > 60) {
+        items.push({
+          icon: '⚖️', priority: 3,
+          text: `<strong>${h.symbol} ${h.name}</strong> 佔投資組合 ${fmt(pct, 1)}%，集中度偏高，長期持有風險較大。`,
+          decision: '是否分散配置，由你決定。'
+        });
+      }
+    });
+  }
+
+  // 4. Encouragement when no actions needed
+  if (actionCount === 0 && portfolio.length > 0) {
+    const winners = portfolio.filter(h => h.currentPrice > h.avgCost);
+    if (winners.length > 0) {
+      const best = winners.reduce((a, b) => (b.currentPrice/b.avgCost > a.currentPrice/a.avgCost ? b : a));
+      const pct = (best.currentPrice / best.avgCost - 1) * 100;
+      items.push({
+        icon: '📈', priority: 9,
+        text: `<strong>${best.symbol} ${best.name}</strong> 報酬率 <strong class="positive">+${fmt(pct, 2)}%</strong>，長期持有策略執行中。耐心是最有效的投資工具。`,
+        decision: null
+      });
+    }
+  }
+
+  return { items, actionCount };
+}
+
+// ═══════════════════════════════════════════════
+//  HOME PAGE
+// ═══════════════════════════════════════════════
+function renderHome() {
+  const { items, actionCount } = generateAI();
+  const portfolio = State.portfolio;
+  const watchlist = State.watchlist;
+
+  // ① Daily brief
+  let cls, icon, title, sub;
+  if (actionCount === 0) {
+    cls = 'status-calm'; icon = '😌';
+    title = '今天不用交易';
+    sub = '市場平靜，安心生活。<br>長期投資的力量在於耐心等待。';
+  } else if (actionCount === 1) {
+    cls = 'status-attention'; icon = '👀';
+    title = '有一件事值得確認';
+    sub = '花 1 分鐘看看下方的 AI 提醒。';
+  } else {
+    cls = 'status-action'; icon = '📋';
+    title = `有 ${actionCount} 件事需要確認`;
+    sub = '請花 3 分鐘檢視以下提醒。';
+  }
+  document.getElementById('dailyBrief').innerHTML = `
+    <div class="brief-status ${cls}">
+      <div class="brief-icon">${icon}</div>
+      <div class="brief-title">${title}</div>
+      <div class="brief-sub">${sub}</div>
+    </div>
+    ${items.length ? `
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div class="card-title" style="margin-bottom:0">AI 陪跑教練</div>
+        <span style="font-size:11px;color:var(--muted)">分析僅供參考</span>
+      </div>
+      ${items.map(i => `
+        <div class="insight-item">
+          <div class="insight-icon">${i.icon}</div>
+          <div class="insight-text">
+            ${i.text}
+            ${i.decision ? `<div class="insight-decision">💬 ${i.decision}</div>` : ''}
+          </div>
+        </div>
+      `).join('')}
+      <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);text-align:center">
+        AI 提供分析與提醒，所有投資決策由你自己決定。
+      </div>
+    </div>` : ''}
+  `;
+
+  // ② Portfolio mini
+  if (portfolio.length > 0) {
+    const totalCost = portfolio.reduce((s, h) => s + h.shares * h.avgCost, 0);
+    const totalVal  = getPortfolioValue();
+    const pnl       = totalVal - totalCost;
+    const pnlPct    = totalCost > 0 ? pnl / totalCost * 100 : 0;
+    document.getElementById('portfolioHome').innerHTML = `
+      <div class="card">
+        <div class="card-title">持倉概覽</div>
+        <div class="total-row">
+          <span class="total-label">股票市值</span>
+          <span style="font-size:18px;font-weight:700">$${fmt(totalVal)}</span>
+        </div>
+        <div class="total-row">
+          <span class="total-label">未實現損益</span>
+          <span class="${pnlCls(pnl)}">${pnlSign(pnl)}$${fmt(Math.abs(pnl))} (${pnlSign(pnlPct)}${fmt(pnlPct, 2)}%)</span>
+        </div>
+      </div>
+    `;
+  } else {
+    document.getElementById('portfolioHome').innerHTML = '';
+  }
+
+  // ③ Watchlist hits
+  const hits = watchlist.filter(w => w.currentPrice && w.targetPrice && w.currentPrice <= w.targetPrice);
+  if (hits.length > 0) {
+    document.getElementById('watchlistHome').innerHTML = `
+      <div class="card">
+        <div class="card-title">觀察清單提醒</div>
+        ${hits.map(w => `
+          <div class="insight-item">
+            <div class="insight-icon">🎯</div>
+            <div class="insight-text"><strong>${w.symbol} ${w.name}</strong> 已達目標買入價 $${fmt(w.targetPrice, 2)}</div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  } else {
+    document.getElementById('watchlistHome').innerHTML = '';
+  }
+
+  // ④ Reminders
+  const s = State.settings;
+  const d = new Date().getDate();
+  if (d >= s.reminderDay && d <= s.reminderDay + 4) {
+    document.getElementById('remindersHome').innerHTML = `
+      <div class="card">
+        <div class="card-title">本月提醒</div>
+        <div class="insight-item">
+          <div class="insight-icon">📅</div>
+          <div class="insight-text">本月定期投入日：預算 <strong>$${fmt(s.monthlyBudget)}</strong></div>
+        </div>
+      </div>
+    `;
+  } else {
+    document.getElementById('remindersHome').innerHTML = '';
+  }
+}
+
+// ═══════════════════════════════════════════════
+//  PORTFOLIO PAGE
+// ═══════════════════════════════════════════════
+function renderPortfolio() {
+  const portfolio = State.portfolio;
+  const el = document.getElementById('portfolioView');
+
+  if (portfolio.length === 0 && getCashBalance() === 0) {
+    el.innerHTML = `<div class="empty"><div class="empty-icon">📂</div>投資組合是空的<br>先點 ＋ 入金，再新增買入交易</div>`;
+    return;
+  }
+
+  const totalCost   = portfolio.reduce((s, h) => s + h.shares * h.avgCost, 0);
+  const totalVal    = getPortfolioValue();
+  const unrealized  = totalVal - totalCost;
+  const unrealPct   = totalCost > 0 ? unrealized / totalCost * 100 : 0;
+  const realized    = getRealizedPnL();
+  const cash        = getCashBalance();
+  const totalAssets = getTotalAssets();
+
+  const holdingRows = portfolio.map(h => {
+    const mktVal  = h.shares * (h.currentPrice || h.avgCost);
+    const cost    = h.shares * h.avgCost;
+    const pnl     = mktVal - cost;
+    const pnlPct  = cost > 0 ? pnl / cost * 100 : 0;
+    const alloc   = totalVal > 0 ? mktVal / totalVal * 100 : 0;
+    return `
+      <div class="stock-row">
+        <div>
+          <div class="stock-symbol">${h.symbol}</div>
+          <div class="stock-name">${h.name} · ${fmt(h.shares, h.shares % 1 !== 0 ? 3 : 0)} 股</div>
+          <div style="margin-top:5px">
+            <span class="chip chip-gray">均價 $${fmt(h.avgCost, 2)}</span>
+            <span class="chip chip-blue">${fmt(alloc, 1)}%</span>
+          </div>
+        </div>
+        <div class="stock-right">
+          <div class="stock-value" onclick="openUpdatePrice('${h.id}','portfolio')" style="cursor:pointer">
+            $${fmt(mktVal)} ✏️
+          </div>
+          <div class="stock-sub ${pnlCls(pnl)}">${pnlSign(pnl)}${fmt(pnlPct, 2)}%</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">現價 $${fmt(h.currentPrice || h.avgCost, 2)}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="card">
+      <div class="card-title">總資產</div>
+      <div class="total-row">
+        <span class="total-label">總資產</span>
+        <span class="total-value">$${fmt(totalAssets)}</span>
+      </div>
+      <div class="total-row">
+        <span class="total-label">股票市值</span>
+        <span>$${fmt(totalVal)}</span>
+      </div>
+      <div class="total-row">
+        <span class="total-label">現金餘額</span>
+        <span class="${cash < 0 ? 'negative' : ''}">$${fmt(cash)}</span>
+      </div>
+      <div class="total-row">
+        <span class="total-label">未實現損益</span>
+        <span class="${pnlCls(unrealized)}">${pnlSign(unrealized)}$${fmt(Math.abs(unrealized))} (${pnlSign(unrealPct)}${fmt(unrealPct, 2)}%)</span>
+      </div>
+      <div class="total-row">
+        <span class="total-label">已實現損益</span>
+        <span class="${pnlCls(realized)}">${pnlSign(realized)}$${fmt(Math.abs(realized))}</span>
+      </div>
+    </div>
+    ${portfolio.length > 0 ? `
+    <div class="card">
+      <div class="card-title">持股明細 <span style="font-size:11px;color:var(--muted)">點市值更新現價</span></div>
+      ${holdingRows}
+    </div>` : ''}
+  `;
+}
+
+// ═══════════════════════════════════════════════
+//  WATCHLIST PAGE
+// ═══════════════════════════════════════════════
+function renderWatchlist() {
+  const watchlist = State.watchlist;
+  const el = document.getElementById('watchlistView');
+
+  if (watchlist.length === 0) {
+    el.innerHTML = `<div class="empty"><div class="empty-icon">👁️</div>觀察清單是空的<br>點 ＋ 加入想追蹤的股票</div>`;
+    return;
+  }
+
+  const rows = watchlist.map(w => {
+    const met  = w.currentPrice && w.targetPrice && w.currentPrice <= w.targetPrice;
+    const diff = (w.currentPrice && w.targetPrice) ? ((w.currentPrice / w.targetPrice - 1) * 100) : null;
+    return `
+      <div class="watch-row">
+        <div>
+          <div class="stock-symbol">${w.symbol}</div>
+          <div class="stock-name">${w.name}</div>
+          ${w.note ? `<div style="font-size:12px;color:var(--muted);margin-top:3px">${w.note}</div>` : ''}
+        </div>
+        <div style="text-align:right">
+          <div class="watch-price ${met ? 'target-met' : ''}"
+               onclick="openUpdatePrice('${w.id}','watch')">
+            $${fmt(w.currentPrice || 0, 2)}${met ? ' 🎯' : ' ✏️'}
+          </div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px">目標 $${w.targetPrice ? fmt(w.targetPrice, 2) : '—'}</div>
+          ${diff !== null ? `<div style="font-size:12px;margin-top:2px" class="${met ? 'positive' : 'negative'}">${diff > 0 ? '+' : ''}${fmt(diff, 1)}%</div>` : ''}
+          <button class="btn-sm" onclick="removeWatch('${w.id}')" style="margin-top:6px">移除</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="card">
+      <div class="card-title">觀察清單 <span style="font-size:11px;color:var(--muted)">點價格更新現價</span></div>
+      ${rows}
+    </div>
+  `;
+}
+
+// ═══════════════════════════════════════════════
+//  HISTORY PAGE
+// ═══════════════════════════════════════════════
+function renderHistory() {
+  const txs = [...State.transactions].sort((a, b) => b.date.localeCompare(a.date));
+  const el  = document.getElementById('historyView');
+
+  if (txs.length === 0) {
+    el.innerHTML = `<div class="empty"><div class="empty-icon">📋</div>還沒有交易紀錄<br>點 ＋ 新增第一筆交易</div>`;
+    return;
+  }
+
+  const totalDeposit  = txs.filter(t => t.type === 'deposit').reduce((s, t) => s + t.cashAmt, 0);
+  const totalWithdraw = txs.filter(t => t.type === 'withdraw').reduce((s, t) => s + t.cashAmt, 0);
+  const totalBuyAmt   = txs.filter(t => t.type === 'buy').reduce((s, t) => s + t.shares * t.price, 0);
+  const totalFees     = txs.filter(t => t.fee).reduce((s, t) => s + (t.fee || 0), 0);
+
+  const typeLabel  = { buy:'買入', sell:'賣出', deposit:'入金', withdraw:'出金' };
+  const typeChip   = { buy:'chip-blue', sell:'chip-red', deposit:'chip-green', withdraw:'chip-yellow' };
+  const typeSign   = { buy:'-', sell:'+', deposit:'+', withdraw:'-' };
+  const typeCls    = { buy:'negative', sell:'positive', deposit:'positive', withdraw:'negative' };
+
+  const rows = txs.map(tx => {
+    const isTrade = tx.type === 'buy' || tx.type === 'sell';
+    const amount  = isTrade ? (tx.shares * tx.price) : tx.cashAmt;
+    return `
+      <div class="tx-row">
+        <div style="flex:1;min-width:0">
+          <div class="tx-date">${tx.date}</div>
+          <div class="tx-desc">
+            <span class="chip ${typeChip[tx.type]}">${typeLabel[tx.type]}</span>
+            ${isTrade ? `${tx.symbol} ${tx.name}` : '現金'}
+          </div>
+          ${tx.reason ? `<div style="font-size:12px;color:var(--muted);margin-top:3px">理由：${tx.reason}</div>` : ''}
+          ${tx.note   ? `<div style="font-size:12px;color:var(--muted);margin-top:1px">${tx.note}</div>` : ''}
+        </div>
+        <div style="flex-shrink:0;padding-left:12px">
+          <div class="tx-amount ${typeCls[tx.type]}">${typeSign[tx.type]}$${fmt(amount)}</div>
+          ${isTrade ? `<div class="tx-sub">${fmt(tx.shares, tx.shares % 1 !== 0 ? 3 : 0)} 股 @ $${fmt(tx.price, 2)}</div>` : ''}
+          ${tx.fee    ? `<div class="tx-sub">手續費 $${fmt(tx.fee)}</div>` : ''}
+          <button class="btn-sm" onclick="deleteTx('${tx.id}')" style="margin-top:6px">刪除</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="card">
+      <div class="card-title">統計</div>
+      <div class="total-row"><span class="total-label">總入金</span><span class="positive">+$${fmt(totalDeposit)}</span></div>
+      <div class="total-row"><span class="total-label">總出金</span><span class="negative">-$${fmt(totalWithdraw)}</span></div>
+      <div class="total-row"><span class="total-label">總買入金額</span><span>$${fmt(totalBuyAmt)}</span></div>
+      <div class="total-row"><span class="total-label">累計手續費</span><span class="negative">$${fmt(totalFees)}</span></div>
+      <div class="total-row"><span class="total-label">交易筆數</span><span>${txs.length} 筆</span></div>
+    </div>
+    <div class="card">
+      <div class="card-title">所有交易</div>
+      ${rows}
+    </div>
+  `;
+}
+
+// ═══════════════════════════════════════════════
+//  SETTINGS PAGE
+// ═══════════════════════════════════════════════
+function renderSettings() {
+  const s = State.settings;
+  document.getElementById('settingsView').innerHTML = `
+    <div class="card">
+      <div class="card-title">投資設定</div>
+      <div class="setting-row">
+        <span class="setting-label">每月投資預算</span>
+        <span class="setting-value" onclick="editSetting('monthlyBudget','每月投資預算（元）',${s.monthlyBudget})">$${fmt(s.monthlyBudget)} ✏️</span>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">每月提醒日</span>
+        <span class="setting-value" onclick="editSetting('reminderDay','提醒日（1~28）',${s.reminderDay})">${s.reminderDay} 日 ✏️</span>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">預設手續費率</span>
+        <span class="setting-value" onclick="editSetting('defaultFeeRate','手續費率（%）',${s.defaultFeeRate})">${s.defaultFeeRate}% ✏️</span>
+      </div>
+    </div>
+
+    <div class="line-card">
+      <div class="line-card-title">LINE Assistant</div>
+      <div class="line-card-sub">
+        透過 LINE 完成入金、買入、賣出、查詢持股。<br>
+        所有交易經過二次確認，安全有保障。
+      </div>
+      <div class="line-badge">⏳ 即將推出 · 需要後端服務</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">通知設定</div>
+      <div class="insight-item">
+        <div class="insight-icon">🔔</div>
+        <div class="insight-text">
+          盤前摘要、盤中重大事件、盤後摘要<br>
+          <span style="font-size:12px">⏳ 即將推出 · 需要後端服務</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">關於</div>
+      <div class="insight-item">
+        <div class="insight-icon">✦</div>
+        <div class="insight-text">
+          <strong>AI Investment OS Lite v1.0</strong><br>
+          陪伴小資族建立投資紀律的 AI 陪跑教練。<br>
+          不報明牌，不替你下決定，不是股票分析軟體。
+        </div>
+      </div>
+      <div class="insight-item">
+        <div class="insight-icon">⚠️</div>
+        <div class="insight-text">
+          AI 提供分析與提醒，<strong>不構成任何投資建議</strong>。<br>
+          所有投資決策由使用者自行判斷並承擔責任。<br>
+          投資一定有風險，過去績效不代表未來結果。
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title" style="color:var(--red)">資料管理</div>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:12px">所有資料儲存於你的裝置本機。資料屬於你，不會上傳至任何伺服器。</p>
+      <button class="btn btn-danger" onclick="exportData()">匯出資料（JSON）</button>
+      <div style="height:8px"></div>
+      <button class="btn btn-danger" onclick="clearAllData()">清除所有資料</button>
+    </div>
+  `;
+}
+
+function editSetting(key, label, current) {
+  const val = prompt(label, current);
+  if (val === null) return;
+  const num = parseFloat(val);
+  if (isNaN(num) || num <= 0) { showToast('請輸入有效數字'); return; }
+  const s = State.settings;
+  s[key] = key === 'defaultFeeRate' ? num : Math.round(num);
+  State.settings = s;
+  renderSettings();
+  showToast('已更新');
+}
+
+function exportData() {
+  const data = {
+    exportedAt: new Date().toISOString(),
+    portfolio: State.portfolio,
+    watchlist: State.watchlist,
+    transactions: State.transactions,
+    settings: State.settings,
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `investment-os-${today()}.json`;
+  a.click();
+}
+
+function clearAllData() {
+  if (!confirm('確定要清除所有資料？此操作無法復原。')) return;
+  ['ready','portfolio','watchlist','transactions','settings'].forEach(k => localStorage.removeItem('ios_' + k));
+  showToast('資料已清除，請重新設定');
+  setTimeout(() => location.reload(), 1200);
+}
+
+// ═══════════════════════════════════════════════
+//  ACTIONS
+// ═══════════════════════════════════════════════
+function submitTransaction() {
+  const type = document.getElementById('txType').value;
+  const date = document.getElementById('txDate').value;
+  if (!date) { showToast('請選擇日期'); return; }
+
+  if (type === 'deposit' || type === 'withdraw') {
+    const cashAmt = parseFloat(document.getElementById('txCashAmt').value);
+    if (!cashAmt || cashAmt <= 0) { showToast('請輸入金額'); return; }
+    const reason = document.getElementById('txReason').value.trim();
+    const note   = document.getElementById('txNote').value.trim();
+    const tx = { id: uid(), date, type, cashAmt, reason, note };
+    State.transactions = [...State.transactions, tx];
+    clearTxForm();
+    closeModal('modalTx');
+    showToast(`${type === 'deposit' ? '入金' : '出金'} $${fmt(cashAmt)} 已記錄`);
+    renderCurrentPage();
+    return;
+  }
+
+  const symbol = document.getElementById('txSymbol').value.trim().toUpperCase();
+  const name   = document.getElementById('txName').value.trim();
+  const shares = parseFloat(document.getElementById('txShares').value);
+  const price  = parseFloat(document.getElementById('txPrice').value);
+  const fee    = parseFloat(document.getElementById('txFee').value) || 0;
+  const reason = document.getElementById('txReason').value.trim();
+  const note   = document.getElementById('txNote').value.trim();
+
+  if (!symbol || !name) { showToast('請填寫股票代號與名稱'); return; }
+  if (!shares || shares <= 0) { showToast('請填寫股數'); return; }
+  if (!price  || price  <= 0) { showToast('請填寫成交價格'); return; }
+
+  let realizedPnL;
+
+  // Update portfolio holdings
+  const portfolio = [...State.portfolio];
+  if (type === 'buy') {
+    const idx = portfolio.findIndex(h => h.symbol === symbol);
+    if (idx >= 0) {
+      const h = portfolio[idx];
+      const newTotalCost = h.shares * h.avgCost + shares * price;
+      h.shares += shares;
+      h.avgCost = newTotalCost / h.shares;
+      if (!h.currentPrice) h.currentPrice = price;
+    } else {
+      portfolio.push({ id: uid(), symbol, name, shares, avgCost: price, currentPrice: price });
+    }
+  } else if (type === 'sell') {
+    const idx = portfolio.findIndex(h => h.symbol === symbol);
+    if (idx >= 0) {
+      const h = portfolio[idx];
+      realizedPnL = (price - h.avgCost) * shares - fee;
+      h.shares -= shares;
+      if (h.shares <= 0.0001) portfolio.splice(idx, 1);
+    }
+  }
+  State.portfolio = portfolio;
+
+  const tx = { id: uid(), date, type, symbol, name, shares, price, fee, reason, note };
+  if (realizedPnL !== undefined) tx.realizedPnL = realizedPnL;
+  State.transactions = [...State.transactions, tx];
+
+  clearTxForm();
+  closeModal('modalTx');
+  const label = type === 'buy' ? '買入' : '賣出';
+  showToast(`${label} ${symbol} ${fmt(shares)} 股已記錄`);
+  renderCurrentPage();
+}
+
+function clearTxForm() {
+  ['txSymbol','txName','txShares','txPrice','txFee','txCashAmt','txReason','txNote'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+}
+
+function addWatchItem() {
+  const symbol  = document.getElementById('watchSymbol').value.trim().toUpperCase();
+  const name    = document.getElementById('watchName').value.trim();
+  const current = parseFloat(document.getElementById('watchCurrent').value) || 0;
+  const target  = parseFloat(document.getElementById('watchTarget').value) || 0;
+  const note    = document.getElementById('watchNote').value.trim();
+
+  if (!symbol || !name) { showToast('請填寫股票代號與名稱'); return; }
+
+  State.watchlist = [...State.watchlist, { id: uid(), symbol, name, currentPrice: current, targetPrice: target, note }];
+  ['watchSymbol','watchName','watchCurrent','watchTarget','watchNote'].forEach(id => document.getElementById(id).value = '');
+  closeModal('modalWatch');
+  showToast(`已加入觀察：${symbol} ${name}`);
+  renderWatchlist();
+}
+
+function removeWatch(id) {
+  State.watchlist = State.watchlist.filter(w => w.id != id);
+  showToast('已移除');
+  renderWatchlist();
+}
+
+function deleteTx(id) {
+  if (!confirm('確定刪除此筆紀錄？')) return;
+  State.transactions = State.transactions.filter(t => t.id != id);
+  showToast('紀錄已刪除');
+  renderHistory();
+}
+
+function openUpdatePrice(id, ctx) {
+  const items = ctx === 'portfolio' ? State.portfolio : State.watchlist;
+  const item  = items.find(i => i.id == id);
+  if (!item) return;
+  document.getElementById('updatePriceTitle').textContent = `更新現價：${item.symbol} ${item.name}`;
+  document.getElementById('updatePriceValue').value = item.currentPrice || '';
+  document.getElementById('updatePriceId').value    = id;
+  document.getElementById('updatePriceCtx').value   = ctx;
+  openModal('modalUpdatePrice');
+}
+
+function confirmUpdatePrice() {
+  const id    = document.getElementById('updatePriceId').value;
+  const ctx   = document.getElementById('updatePriceCtx').value;
+  const price = parseFloat(document.getElementById('updatePriceValue').value);
+  if (!price || price <= 0) { showToast('請輸入有效價格'); return; }
+
+  if (ctx === 'portfolio') {
+    const p = State.portfolio;
+    const h = p.find(i => i.id == id);
+    if (h) { h.currentPrice = price; State.portfolio = p; }
+  } else {
+    const w = State.watchlist;
+    const i = w.find(x => x.id == id);
+    if (i) { i.currentPrice = price; State.watchlist = w; }
+  }
+  closeModal('modalUpdatePrice');
+  showToast('現價已更新');
+  renderCurrentPage();
+}
+
+// ═══════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════
+function init() {
+  const now  = new Date();
+  const days = ['日','一','二','三','四','五','六'];
+  document.getElementById('headerDate').textContent =
+    `${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')} 週${days[now.getDay()]}`;
+
+  if (!State.ready) {
+    showOnboarding();
+  } else {
+    renderHome();
+  }
+}
+
+init();
+</script>
+</body>
+</html>
