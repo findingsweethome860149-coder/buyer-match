@@ -43,6 +43,17 @@ const AIModule = (() => {
     return              { label: '高風險',  cls: 'score-low',     stars: '★☆☆☆☆', tier: 'low' };
   }
 
+  /**
+   * Returns { label, cls, tip } for a 0-100 health score.
+   * label: 'Excellent' | 'Good' | 'Fair' | 'Warning'
+   */
+  function healthLabel(score) {
+    if (score >= 80) return { label: '優良', cls: 'score-high', tip: '投資組合結構健康' };
+    if (score >= 60) return { label: '良好', cls: 'score-high', tip: '整體良好，有小幅改善空間' };
+    if (score >= 40) return { label: '普通', cls: 'score-mid', tip: '建議關注以下提示' };
+    return              { label: '需注意', cls: 'score-low',  tip: '請留意以下警示' };
+  }
+
   // ── Portfolio Health ──────────────────────────────────────────────────────
   // 0–100. Based on: concentration, cash ratio, trading frequency, long-term holding.
   // Does NOT evaluate by return rate.
@@ -345,6 +356,7 @@ const AIModule = (() => {
     analyze,
     scoreStock,
     scoreLabel,
+    healthLabel,
     analyzeStock,
     portfolioHealth,
     behaviorAnalysis,

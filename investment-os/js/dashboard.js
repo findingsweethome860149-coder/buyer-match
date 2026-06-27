@@ -10,7 +10,7 @@ const DashboardModule = (() => {
 
   // ── Home ──────────────────────────────────────────────────────────────────
 
-  function renderHome({ aiResult, holdings, watchlist, cash, totalAssets, settings, todayPnL, cumulativePnL }) {
+  function renderHome({ aiResult, holdings, watchlist, cash, totalAssets, settings, todayPnL, cumulativePnL, healthResult }) {
     const { items, actionCount } = aiResult;
 
     // ① 今日 AI 建議
@@ -61,9 +61,26 @@ const DashboardModule = (() => {
     `);
 
     // ③ Goal Tracker
-    const goalLabel  = settings.investmentGoal || '尚未設定目標';
-    const goalAmount = settings.goalAmount || 0;
-    const goalPct    = (goalAmount > 0 && totalAssets > 0) ? Math.min(100, totalAssets / goalAmount * 100) : 0;
+    const goalLabel   = settings.investmentGoal || '尚未設定目標';
+    const goalAmount  = settings.goalAmount || 0;
+    const monthBudget = settings.monthlyBudget || 0;
+    const goalPct     = (goalAmount > 0 && totalAssets > 0) ? Math.min(100, totalAssets / goalAmount * 100) : 0;
+    const goalReached = goalAmount > 0 && totalAssets >= goalAmount;
+
+    let goalFooter = '';
+    if (goalReached) {
+      goalFooter = `<div style="font-size:13px;font-weight:600;color:var(--green);margin-top:6px">🎉 已達成目標！</div>`;
+    } else if (goalAmount > 0 && monthBudget > 0 && totalAssets < goalAmount) {
+      const remaining  = goalAmount - totalAssets;
+      const monthsLeft = Math.ceil(remaining / monthBudget);
+      const est = new Date();
+      est.setMonth(est.getMonth() + monthsLeft);
+      const estStr = `${est.getFullYear()}/${String(est.getMonth() + 1).padStart(2, '0')}`;
+      goalFooter = `<div style="font-size:12px;color:var(--muted);margin-top:6px">預估完成日期：${estStr}（按每月 $${Utils.fmt(monthBudget)} 計算）</div>`;
+    } else if (goalAmount > 0) {
+      goalFooter = `<div style="font-size:12px;color:var(--muted);margin-top:6px">設定每月預算以計算預估完成日期</div>`;
+    }
+
     _set('watchlistHome', `
       <div class="card">
         <div class="card-title">Goal Tracker</div>
@@ -72,7 +89,7 @@ const DashboardModule = (() => {
           <span style="font-size:12px;color:var(--accent);cursor:pointer" onclick="App.editSetting('investmentGoal','投資目標','${goalLabel}')">更改 ✏️</span>
         </div>
         ${goalAmount > 0 ? `
-          <div style="margin-bottom:6px">
+          <div style="margin-bottom:4px">
             <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:4px">
               <span>完成進度</span>
               <span>${Utils.fmt(goalPct, 1)}%（目標 $${Utils.fmt(goalAmount)}）</span>
@@ -81,7 +98,7 @@ const DashboardModule = (() => {
               <div style="width:${goalPct}%;height:8px;border-radius:4px;background:var(--accent);transition:width .4s"></div>
             </div>
           </div>
-          <div style="font-size:12px;color:var(--muted)">預估完成日期：計算中…</div>
+          ${goalFooter}
         ` : `
           <div style="font-size:13px;color:var(--muted)">
             設定目標金額以追蹤進度
@@ -91,7 +108,36 @@ const DashboardModule = (() => {
       </div>
     `);
 
-    // ④ Watchlist（前 5 檔）
+    // ④ Portfolio Health（home summary card）
+    if (healthResult && healthResult.score !== undefined) {
+      const hl     = AIModule.healthLabel(healthResult.score);
+      const hColor = healthResult.score >= 60 ? 'var(--green)' : healthResult.score >= 40 ? 'var(--yellow)' : 'var(--red)';
+      _set('portfolioHealthHome', `
+        <div class="card">
+          <div class="card-title">Portfolio 健康度</div>
+          <div style="display:flex;align-items:center;gap:14px">
+            <div style="font-size:34px;font-weight:900;color:${hColor}">${healthResult.score}</div>
+            <div style="flex:1">
+              <div style="height:6px;border-radius:3px;background:var(--surface2)">
+                <div style="width:${healthResult.score}%;height:6px;border-radius:3px;background:${hColor};transition:width .5s"></div>
+              </div>
+              <div style="margin-top:4px;display:flex;justify-content:space-between;align-items:center">
+                <span class="score-badge ${hl.cls}">${hl.label}</span>
+                <span style="font-size:11px;color:var(--muted)">${hl.tip}</span>
+              </div>
+            </div>
+          </div>
+          ${healthResult.reasons && healthResult.reasons.length > 0 ? `
+            <div style="margin-top:8px;font-size:12px;color:var(--muted)">
+              ${healthResult.reasons.slice(0, 2).map(r => `<div style="padding:2px 0">· ${r}</div>`).join('')}
+            </div>` : ''}
+        </div>
+      `);
+    } else {
+      _set('portfolioHealthHome', '');
+    }
+
+    // ⑤ Watchlist（前 5 檔）
     _set('remindersHome', watchlist.length > 0 ? `
       <div class="card">
         <div class="card-title">觀察清單</div>
@@ -121,7 +167,7 @@ const DashboardModule = (() => {
       </div>
     `);
 
-    // ⑤ 通知（最新 3 則 AI 提醒）
+    // ⑥ 通知（最新 3 則 AI 提醒）
     const notifs = items.filter(i => i.priority <= 3).slice(0, 3);
     _set('activityHome', notifs.length > 0 ? `
       <div class="card">
@@ -137,7 +183,7 @@ const DashboardModule = (() => {
 
   // ── Portfolio ─────────────────────────────────────────────────────────────
 
-  function renderPortfolio({ holdings, watchlist, transactions, cash, unrealized, unrealPct, realized, totalAssets, todayPnL }) {
+  function renderPortfolio({ holdings, watchlist, transactions, cash, unrealized, unrealPct, realized, totalAssets, todayPnL, thesisMap }) {
     const el = document.getElementById('portfolioView');
 
     if (holdings.length === 0 && cash === 0) {
@@ -156,6 +202,7 @@ const DashboardModule = (() => {
       const wItem     = (watchlist || []).find(w => w.stockId === h.stockId);
       const aiPoints  = wItem ? AIModule.analyzeStock(wItem, h) : [];
       const aiHint    = aiPoints.length > 1 ? aiPoints[0].text : null;
+      const thesis    = thesisMap && thesisMap[h.stockId];
       return `
         <div class="stock-row" style="flex-direction:column;align-items:stretch;gap:8px">
           <div style="display:flex;justify-content:space-between;align-items:flex-start">
@@ -165,6 +212,7 @@ const DashboardModule = (() => {
               <div style="margin-top:5px">
                 <span class="chip chip-gray">均價 $${Utils.fmt(h.avgCost, 2)}</span>
                 <span class="chip chip-blue">${Utils.fmt(alloc, 1)}%</span>
+                ${thesis ? `<span class="chip chip-gray" style="color:var(--accent)">📌 ${thesis}</span>` : `<span class="chip chip-gray" style="color:var(--muted)">尚未設定買進理由</span>`}
               </div>
             </div>
             <div class="stock-right">
@@ -435,8 +483,17 @@ const DashboardModule = (() => {
 
       <div class="line-card">
         <div class="line-card-title">LINE Assistant</div>
-        <div class="line-card-sub">透過 LINE 完成入金、買入、賣出、查詢持股。所有交易經過二次確認。</div>
-        <div class="line-badge">⏳ 即將推出 · 需要後端服務</div>
+        <div class="line-card-sub">透過 LINE 完成入金、買入、賣出、查詢持股。所有交易經過二次確認，Dashboard 自動同步。</div>
+        <div style="margin-top:10px">
+          <label class="form-label" style="font-size:12px;margin-bottom:4px;display:block">Webhook 伺服器網址</label>
+          <div style="display:flex;gap:6px">
+            <input class="form-input" id="lineServerUrl" type="url" placeholder="https://your-server.example.com"
+              style="flex:1;font-size:12px"
+              value="${(typeof localStorage !== 'undefined' ? localStorage.getItem('aios_line_server_url') : '') || ''}">
+            <button class="btn" style="font-size:12px;padding:6px 10px" onclick="App.saveLineServerUrl()">儲存</button>
+          </div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px">設定後每 15 秒自動同步 LINE 操作</div>
+        </div>
       </div>
 
       <div class="card">

@@ -54,6 +54,9 @@ const App = (() => {
       const totalAssets = PortfolioModule.getTotalAssets(txs);
       const unrealized  = PortfolioModule.getUnrealizedPnL();
       const realized    = PortfolioModule.getRealizedPnL(txs);
+      const healthResult = holdings.length > 0
+        ? AIModule.portfolioHealth(holdings, txs, totalAssets)
+        : null;
       DashboardModule.renderHome({
         aiResult,
         holdings,
@@ -63,8 +66,14 @@ const App = (() => {
         settings,
         todayPnL:      PortfolioModule.getTodayPnL(),
         cumulativePnL: unrealized + realized,
+        healthResult,
       });
     } else if (_page === 'portfolio') {
+      // Latest thesis per stock from buy transactions
+      const thesisMap = {};
+      txs.filter(t => t.type === 'buy' && t.thesis)
+         .sort((a, b) => a.date.localeCompare(b.date))
+         .forEach(t => { thesisMap[t.stockId] = t.thesis; });
       DashboardModule.renderPortfolio({
         holdings,
         watchlist,
@@ -75,6 +84,7 @@ const App = (() => {
         realized:     PortfolioModule.getRealizedPnL(txs),
         totalAssets:  PortfolioModule.getTotalAssets(txs),
         todayPnL:     PortfolioModule.getTodayPnL(),
+        thesisMap,
       });
     } else if (_page === 'watchlist') {
       DashboardModule.renderWatchlist({ watchlist });
@@ -108,7 +118,7 @@ const App = (() => {
         if (!cashAmt || cashAmt <= 0) { NotificationModule.toast('請輸入金額'); return; }
         _pendingTx = {
           type, date, cashAmt,
-          thesis: document.getElementById('txReason').value.trim(),
+          thesis: _readThesis(),
           memo:   document.getElementById('txNote').value.trim(),
         };
         document.getElementById('txConfirmBody').innerHTML = `
@@ -124,7 +134,7 @@ const App = (() => {
       const quantity  = parseFloat(document.getElementById('txShares').value);
       const price     = parseFloat(document.getElementById('txPrice').value);
       const fee       = parseFloat(document.getElementById('txFee').value) || 0;
-      const thesis    = document.getElementById('txReason').value.trim();
+      const thesis    = _readThesis();
       const memo      = document.getElementById('txNote').value.trim();
 
       if (!stockId || !stockName) { NotificationModule.toast('請填寫股票代號與名稱'); return; }
@@ -448,6 +458,20 @@ const App = (() => {
     NotificationModule.toast('已更新');
   }
 
+  function saveLineServerUrl() {
+    const input = document.getElementById('lineServerUrl');
+    if (!input) return;
+    const url = input.value.trim().replace(/\/$/, '');
+    if (url) {
+      localStorage.setItem('aios_line_server_url', url);
+      NotificationModule.toast('LINE 伺服器網址已儲存，同步已啟動');
+      _startLineSyncPoll();
+    } else {
+      localStorage.removeItem('aios_line_server_url');
+      NotificationModule.toast('LINE 伺服器網址已清除');
+    }
+  }
+
   function exportData() {
     try {
       const data = DB.exportAll();
@@ -658,6 +682,9 @@ const App = (() => {
       NotificationModule.toast('發生錯誤，請重新整理頁面。資料已自動保存。');
     });
 
+    // LINE sync polling (every 15s, only if server is configured)
+    _startLineSyncPoll();
+
     // Start — check data integrity first
     if (!_checkDataIntegrity()) {
       _showRecoveryScreen();
@@ -674,6 +701,86 @@ const App = (() => {
       });
     } else {
       _safeRender();
+    }
+  }
+
+  // ─── LINE Sync ────────────────────────────────────────────────────────────
+
+  const LINE_SYNC_INTERVAL_MS = 15000;
+  const LINE_SERVER_URL_KEY   = 'aios_line_server_url'; // stored in localStorage by user
+
+  function _startLineSyncPoll() {
+    const url = localStorage.getItem(LINE_SERVER_URL_KEY);
+    if (!url) return; // no server configured
+    _lineSyncOnce(url);
+    setInterval(() => _lineSyncOnce(url), LINE_SYNC_INTERVAL_MS);
+  }
+
+  async function _lineSyncOnce(serverUrl) {
+    try {
+      const res  = await fetch(`${serverUrl}/api/sync`, { signal: AbortSignal.timeout(8000) });
+      if (!res.ok) return;
+      const { pending } = await res.json();
+      if (!pending || pending.length === 0) return;
+
+      const consumed = [];
+      for (const op of pending) {
+        try {
+          _processLineOp(op);
+          consumed.push(op.id);
+        } catch (err) {
+          console.warn('LINE op failed:', op.type, err.message);
+        }
+      }
+
+      if (consumed.length > 0) {
+        await fetch(`${serverUrl}/api/sync/ack`, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ ids: consumed }),
+        });
+        NotificationModule.toast(`LINE 同步了 ${consumed.length} 筆操作`);
+        _safeRender();
+      }
+    } catch {
+      // Silent fail — server may be offline
+    }
+  }
+
+  function _processLineOp(op) {
+    if (op.type === 'buy' || op.type === 'sell') {
+      const fee = op.fee || Utils.calcFee(op.quantity * op.price, DB.Settings.get().defaultFeeRate || 0.1425);
+      const tax = op.type === 'sell' ? Math.round(op.quantity * op.price * TAIWAN_SECURITIES_TAX) : 0;
+      const total = op.type === 'buy'
+        ? op.quantity * op.price + fee
+        : op.quantity * op.price - fee - tax;
+
+      let realizedPnL;
+      if (op.type === 'sell') {
+        const h = PortfolioModule.getHoldings().find(x => x.stockId === op.stockId);
+        if (!h) throw new Error(`${op.stockId} not in holdings`);
+        if (op.quantity > h.quantity + 0.0001) throw new Error(`Oversell ${op.stockId}`);
+        realizedPnL = (op.price - h.avgCost) * op.quantity - fee - tax;
+      }
+
+      TransactionModule.add({
+        type: op.type, date: op.date || Utils.today(),
+        stockId: op.stockId, stockName: op.stockName || op.stockId,
+        quantity: op.quantity, price: op.price,
+        fee, tax, total, realizedPnL,
+        thesis: op.thesis || 'LINE', memo: 'via LINE',
+      });
+      PortfolioModule.recalculate(TransactionModule.getAll());
+
+    } else if (op.type === 'deposit' || op.type === 'withdraw') {
+      TransactionModule.add({
+        type: op.type, date: op.date || Utils.today(),
+        cashAmt: op.cashAmt, memo: 'via LINE',
+      });
+
+    } else if (op.type === 'add_watch') {
+      const dup = WatchlistModule.getAll().find(w => w.stockId === op.stockId);
+      if (!dup) WatchlistModule.add({ stockId: op.stockId, stockName: op.stockName || op.stockId });
     }
   }
 
@@ -732,9 +839,25 @@ const App = (() => {
     }
   }
 
+  function _readThesis() {
+    const sel = document.getElementById('txThesisSelect');
+    if (!sel) return '';
+    if (sel.value === '自訂') return (document.getElementById('txReasonCustom').value || '').trim();
+    return sel.value;
+  }
+
+  function onThesisChange(val) {
+    const wrap = document.getElementById('txReasonCustomWrap');
+    if (wrap) wrap.style.display = val === '自訂' ? '' : 'none';
+  }
+
   function _clearTxForm() {
-    ['txSymbol','txName','txShares','txPrice','txFee','txCashAmt','txReason','txNote']
+    ['txSymbol','txName','txShares','txPrice','txFee','txCashAmt','txReasonCustom','txNote']
       .forEach(id => { document.getElementById(id).value = ''; });
+    const sel = document.getElementById('txThesisSelect');
+    if (sel) sel.value = '';
+    const wrap = document.getElementById('txReasonCustomWrap');
+    if (wrap) wrap.style.display = 'none';
   }
 
   return {
@@ -766,5 +889,7 @@ const App = (() => {
     selectGoal,
     nextOnboard,
     finishOnboard,
+    onThesisChange,
+    saveLineServerUrl,
   };
 })();

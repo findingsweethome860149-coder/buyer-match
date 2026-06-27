@@ -156,11 +156,13 @@
   <div id="dailyBrief"></div>
   <!-- ② 目前資產 -->
   <div id="assetsHome"></div>
-  <!-- ③ Watchlist -->
+  <!-- ③ Goal Tracker -->
   <div id="watchlistHome"></div>
-  <!-- ④ 今日提醒 -->
+  <!-- ④ Portfolio Health -->
+  <div id="portfolioHealthHome"></div>
+  <!-- ⑤ Watchlist -->
   <div id="remindersHome"></div>
-  <!-- ⑤ 最新活動 -->
+  <!-- ⑥ 最新活動 -->
   <div id="activityHome"></div>
 </div>
 
@@ -261,8 +263,19 @@
       <input class="form-input" id="txDate" type="date">
     </div>
     <div class="form-group">
-      <label class="form-label">交易原因（選填）</label>
-      <input class="form-input" id="txReason" placeholder="例：定期定額、目標價到了、長期持有計畫">
+      <label class="form-label">買進理由（選填）</label>
+      <select class="form-input" id="txThesisSelect" onchange="App.onThesisChange(this.value)">
+        <option value="">— 選擇理由 —</option>
+        <option value="長期投資">長期投資</option>
+        <option value="高殖利率">高殖利率</option>
+        <option value="成長股">成長股</option>
+        <option value="價值投資">價值投資</option>
+        <option value="AI觀察">AI觀察</option>
+        <option value="自訂">自訂…</option>
+      </select>
+      <div id="txReasonCustomWrap" style="display:none;margin-top:6px">
+        <input class="form-input" id="txReasonCustom" placeholder="請輸入自訂理由">
+      </div>
       <div class="form-hint">記錄理由有助於建立投資紀律，建議填寫。</div>
     </div>
     <div class="form-group">
