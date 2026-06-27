@@ -10,6 +10,35 @@
 </head>
 <body>
 
+<!-- ── PIN OVERLAY ── -->
+<div class="pin-overlay" id="pinOverlay" style="display:none">
+  <div class="pin-box">
+    <div class="pin-logo">✦ Investment OS</div>
+    <div class="pin-title" id="pinTitle">輸入 PIN 碼</div>
+    <div class="pin-dots" id="pinDots">
+      <div class="pin-dot" id="pd0"></div>
+      <div class="pin-dot" id="pd1"></div>
+      <div class="pin-dot" id="pd2"></div>
+      <div class="pin-dot" id="pd3"></div>
+    </div>
+    <div class="pin-error" id="pinError"></div>
+    <div class="pin-pad">
+      <button class="pin-key" onclick="SecurityModule._pinInput('1')">1</button>
+      <button class="pin-key" onclick="SecurityModule._pinInput('2')">2</button>
+      <button class="pin-key" onclick="SecurityModule._pinInput('3')">3</button>
+      <button class="pin-key" onclick="SecurityModule._pinInput('4')">4</button>
+      <button class="pin-key" onclick="SecurityModule._pinInput('5')">5</button>
+      <button class="pin-key" onclick="SecurityModule._pinInput('6')">6</button>
+      <button class="pin-key" onclick="SecurityModule._pinInput('7')">7</button>
+      <button class="pin-key" onclick="SecurityModule._pinInput('8')">8</button>
+      <button class="pin-key" onclick="SecurityModule._pinInput('9')">9</button>
+      <button class="pin-key pin-key-action" id="pinCancelBtn" onclick="SecurityModule._pinCancel()">取消</button>
+      <button class="pin-key" onclick="SecurityModule._pinInput('0')">0</button>
+      <button class="pin-key pin-key-action" onclick="SecurityModule._pinDel()">⌫</button>
+    </div>
+  </div>
+</div>
+
 <!-- ── ONBOARDING ── -->
 <div id="onboarding">
   <div class="onboard-dots">
@@ -218,7 +247,7 @@
       <div class="form-group">
         <label class="form-label">手續費（元）</label>
         <input class="form-input" id="txFee" type="number" placeholder="自動計算，可手動修改" step="1" min="0">
-        <div class="form-hint">買入手續費；賣出含 0.3% 證交稅</div>
+        <div class="form-hint">系統自動計算，可手動修改。賣出另計 0.3% 證交稅。</div>
       </div>
     </div>
     <div id="txCashFields" style="display:none">

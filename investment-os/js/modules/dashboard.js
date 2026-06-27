@@ -392,6 +392,7 @@ const DashboardModule = (() => {
   // ── Settings ──────────────────────────────────────────────────────────────
 
   function renderSettings({ settings }) {
+    const pinEnabled = SecurityModule.isPINEnabled();
     document.getElementById('settingsView').innerHTML = `
       <div class="card">
         <div class="card-title">投資目標</div>
@@ -425,8 +426,21 @@ const DashboardModule = (() => {
         <div class="card-title">安全</div>
         <div class="setting-row">
           <span class="setting-label">PIN 鎖定</span>
-          <span style="font-size:13px;color:var(--muted)">⏳ 即將推出</span>
+          ${pinEnabled ? `
+            <div style="display:flex;align-items:center;gap:12px">
+              <span style="font-size:13px;color:var(--green);font-weight:600">已開啟</span>
+              <span style="font-size:13px;color:var(--accent);cursor:pointer" onclick="App.changePIN()">更改 PIN</span>
+              <span style="font-size:13px;color:var(--red);cursor:pointer" onclick="App.disablePIN()">關閉</span>
+            </div>` : `
+            <span style="font-size:13px;color:var(--accent);cursor:pointer" onclick="App.setupPIN()">設定 PIN →</span>`}
         </div>
+        ${pinEnabled ? `
+        <div style="font-size:12px;color:var(--muted);margin-top:6px">
+          開啟 App 及執行匯入、清除操作時需輸入 PIN
+        </div>` : `
+        <div style="font-size:12px;color:var(--muted);margin-top:6px">
+          設定 4 位數 PIN，保護 App 開啟與重要操作
+        </div>`}
       </div>
 
       <div class="line-card">

@@ -368,3 +368,59 @@ select.form-input { cursor: pointer; }
   .total-value { font-size: 20px; }
   .asset-total { font-size: 18px; }
 }
+
+/* ── PIN Overlay ─────────────────────────────────────────────────────────── */
+.pin-overlay {
+  position: fixed; inset: 0; z-index: 9999;
+  background: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+}
+.pin-box {
+  text-align: center; padding: 40px 24px; max-width: 320px; width: 100%;
+}
+.pin-logo {
+  font-size: 17px; font-weight: 700; color: var(--accent);
+  margin-bottom: 36px; letter-spacing: 0.5px;
+}
+.pin-title {
+  font-size: 20px; font-weight: 700; color: var(--text); margin-bottom: 28px;
+}
+.pin-dots {
+  display: flex; justify-content: center; gap: 18px; margin-bottom: 10px;
+}
+.pin-dot {
+  width: 14px; height: 14px; border-radius: 50%;
+  border: 2px solid var(--muted); background: transparent;
+  transition: background .12s, border-color .12s;
+}
+.pin-dot.filled { background: var(--accent); border-color: var(--accent); }
+.pin-dot.error  { background: var(--red);    border-color: var(--red); }
+.pin-error {
+  min-height: 20px; font-size: 13px; color: var(--red);
+  margin-bottom: 20px; transition: opacity .2s;
+}
+.pin-pad {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 14px; max-width: 250px; margin: 0 auto;
+}
+.pin-key {
+  background: var(--surface2); border: none; border-radius: 50%;
+  width: 68px; height: 68px; font-size: 22px; font-weight: 600;
+  color: var(--text); cursor: pointer;
+  transition: background .12s, transform .1s;
+  -webkit-tap-highlight-color: transparent;
+}
+.pin-key:active { background: var(--accent); color: #fff; transform: scale(.9); }
+.pin-key-action {
+  background: transparent; font-size: 15px;
+  color: var(--muted); font-weight: 500;
+}
+.pin-key-action:active { background: var(--surface2); color: var(--text); }
+@keyframes pinShake {
+  0%,100% { transform: translateX(0); }
+  20%     { transform: translateX(-10px); }
+  40%     { transform: translateX(10px); }
+  60%     { transform: translateX(-6px); }
+  80%     { transform: translateX(6px); }
+}
+.pin-shake { animation: pinShake .45s ease; }

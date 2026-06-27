@@ -438,40 +438,91 @@ const App = (() => {
   }
 
   function importData() {
-    try {
-      const input = document.createElement('input');
-      input.type   = 'file';
-      input.accept = '.json';
-      input.onchange = (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-          try {
-            const data = JSON.parse(ev.target.result);
-            DB.importAll(data);
-            SecurityModule.log('importData', file.name);
-            NotificationModule.toast('資料匯入成功，重新載入中…');
-            setTimeout(() => location.reload(), 1200);
-          } catch (err) {
-            NotificationModule.toast('匯入失敗：' + err.message);
-          }
+    const _doImport = () => {
+      try {
+        const input = document.createElement('input');
+        input.type   = 'file';
+        input.accept = '.json';
+        input.onchange = (e) => {
+          const file = e.target.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            try {
+              const data = JSON.parse(ev.target.result);
+              DB.importAll(data);
+              SecurityModule.log('importData', file.name);
+              NotificationModule.toast('資料匯入成功，重新載入中…');
+              setTimeout(() => location.reload(), 1200);
+            } catch (err) {
+              NotificationModule.toast('匯入失敗：' + err.message);
+            }
+          };
+          reader.readAsText(file);
         };
-        reader.readAsText(file);
-      };
-      input.click();
-    } catch (err) {
-      console.error('importData error:', err);
-      NotificationModule.toast('匯入失敗，請稍後再試。');
+        input.click();
+      } catch (err) {
+        console.error('importData error:', err);
+        NotificationModule.toast('匯入失敗，請稍後再試。');
+      }
+    };
+    if (SecurityModule.isPINEnabled()) {
+      SecurityModule.prompt({ title: '請輸入 PIN 確認匯入', onSuccess: _doImport });
+    } else {
+      _doImport();
     }
+  }
+
+  // ── PIN management ────────────────────────────────────────────────────────
+
+  function setupPIN() {
+    SecurityModule.promptSetNew({
+      onSuccess: () => {
+        NotificationModule.toast('PIN 已設定，下次開啟 App 將要求輸入');
+        DashboardModule.renderSettings({ settings: DB.Settings.get() });
+        SecurityModule.log('setupPIN');
+      },
+    });
+  }
+
+  function changePIN() {
+    SecurityModule.prompt({
+      title: '輸入目前 PIN 碼',
+      onSuccess: () => {
+        SecurityModule.promptSetNew({
+          onSuccess: () => {
+            NotificationModule.toast('PIN 已更新');
+            DashboardModule.renderSettings({ settings: DB.Settings.get() });
+          },
+        });
+      },
+    });
+  }
+
+  function disablePIN() {
+    SecurityModule.prompt({
+      title: '輸入 PIN 碼確認關閉',
+      onSuccess: () => {
+        SecurityModule.disablePIN();
+        NotificationModule.toast('PIN 保護已關閉');
+        DashboardModule.renderSettings({ settings: DB.Settings.get() });
+      },
+    });
   }
 
   function clearAllData() {
     if (!confirm('確定要清除所有資料？此操作無法復原。')) return;
-    DB.clear();
-    SecurityModule.log('clearAllData');
-    NotificationModule.toast('資料已清除，重新載入中…');
-    setTimeout(() => location.reload(), 1200);
+    const _doDelete = () => {
+      DB.clear();
+      SecurityModule.log('clearAllData');
+      NotificationModule.toast('資料已清除，重新載入中…');
+      setTimeout(() => location.reload(), 1200);
+    };
+    if (SecurityModule.isPINEnabled()) {
+      SecurityModule.prompt({ title: '請輸入 PIN 確認刪除', onSuccess: _doDelete });
+    } else {
+      _doDelete();
+    }
   }
 
   // ─── Onboarding ────────────────────────────────────────────────────────────
@@ -579,15 +630,49 @@ const App = (() => {
       NotificationModule.toast('發生錯誤，請重新整理頁面。資料已自動保存。');
     });
 
-    // Start
+    // Start — check data integrity first
+    if (!_checkDataIntegrity()) {
+      _showRecoveryScreen();
+      return;
+    }
+
     if (!DB.get('ready', false)) {
       document.getElementById('onboarding').classList.add('show');
+    } else if (SecurityModule.isPINEnabled()) {
+      SecurityModule.prompt({
+        title:       '輸入 PIN 碼解鎖',
+        allowCancel: false,
+        onSuccess:   () => _safeRender(),
+      });
     } else {
       _safeRender();
     }
   }
 
   // ─── Private helpers ──────────────────────────────────────────────────────
+
+  function _checkDataIntegrity() {
+    try {
+      const raw = localStorage.getItem('aios_transactions');
+      if (raw !== null) JSON.parse(raw); // throws if malformed
+      const raw2 = localStorage.getItem('aios_watchlist');
+      if (raw2 !== null) JSON.parse(raw2);
+      return true;
+    } catch { return false; }
+  }
+
+  function _showRecoveryScreen() {
+    document.getElementById('page-home').innerHTML = `
+      <div class="card" style="margin-top:24px;border:1px solid var(--red)">
+        <div class="card-title" style="color:var(--red)">⚠️ 資料異常</div>
+        <p style="font-size:14px;margin-bottom:4px">偵測到資料損毀或格式不符。</p>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:16px">請匯入備份資料來還原，或清除後重新開始。</p>
+        <button class="btn btn-primary" onclick="App.importData()">匯入備份</button>
+        <button class="btn btn-danger" onclick="App.clearAllData()" style="margin-top:8px">清除全部資料</button>
+      </div>`;
+    document.querySelectorAll('.page').forEach(p => p.classList.toggle('active', p.id === 'page-home'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.page === 'home'));
+  }
 
   function _scoreTip(tier) {
     const tips = {
@@ -646,6 +731,9 @@ const App = (() => {
     exportData,
     importData,
     clearAllData,
+    setupPIN,
+    changePIN,
+    disablePIN,
     selectGoal,
     nextOnboard,
     finishOnboard,
