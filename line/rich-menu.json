@@ -1,0 +1,69 @@
+{
+  "_comment": "Finding Sweet Home — LINE Rich Menu 規格 (Phase 1)",
+  "_note": "實際圖片需於 LINE Official Account Manager 後台上傳 (1200×810 px)",
+
+  "size": {
+    "width": 1200,
+    "height": 810
+  },
+  "selected": true,
+  "name": "愛家的綸 主選單",
+  "chatBarText": "功能選單",
+
+  "areas": [
+    {
+      "_label": "① 我要找房 (左上)",
+      "bounds": { "x": 0,   "y": 0,   "width": 400, "height": 405 },
+      "action": { "type": "message", "text": "我要找房" }
+    },
+    {
+      "_label": "② 我要賣房 (中上)",
+      "bounds": { "x": 400, "y": 0,   "width": 400, "height": 405 },
+      "action": { "type": "message", "text": "我要賣房" }
+    },
+    {
+      "_label": "③ 免費估價 (右上)",
+      "bounds": { "x": 800, "y": 0,   "width": 400, "height": 405 },
+      "action": { "type": "message", "text": "免費估價" }
+    },
+    {
+      "_label": "④ 學區宅 (左下)",
+      "bounds": { "x": 0,   "y": 405, "width": 400, "height": 405 },
+      "action": { "type": "message", "text": "學區宅" }
+    },
+    {
+      "_label": "⑤ 房市文章 (中下)",
+      "bounds": { "x": 400, "y": 405, "width": 400, "height": 405 },
+      "action": {
+        "type": "uri",
+        "uri": "https://www.findingsweethomekh.com/"
+      }
+    },
+    {
+      "_label": "⑥ 認識家綸 (右下)",
+      "bounds": { "x": 800, "y": 405, "width": 400, "height": 405 },
+      "action": {
+        "type": "uri",
+        "uri": "https://findingsweethome860149-coder.github.io/buyer-match/card.html"
+      }
+    }
+  ],
+
+  "_design": {
+    "canvas_size": "1200 × 810 px",
+    "grid": "3欄 × 2列，每格 400 × 405 px",
+    "background_color": "#0B2F24",
+    "cell_border_color": "#D4AF37",
+    "text_color": "#F8F6F0",
+    "accent_color": "#D4AF37",
+    "font": "思源黑體 / Noto Sans TC",
+    "cells": [
+      { "pos": "左上", "icon": "🏠", "label": "我要找房" },
+      { "pos": "中上", "icon": "🔑", "label": "我要賣房" },
+      { "pos": "右上", "icon": "💰", "label": "免費估價" },
+      { "pos": "左下", "icon": "🎓", "label": "學區宅"  },
+      { "pos": "中下", "icon": "📰", "label": "房市文章" },
+      { "pos": "右下", "icon": "👤", "label": "認識家綸" }
+    ]
+  }
+}
