@@ -137,7 +137,7 @@ const DashboardModule = (() => {
 
   // ── Portfolio ─────────────────────────────────────────────────────────────
 
-  function renderPortfolio({ holdings, cash, unrealized, unrealPct, realized, totalAssets, todayPnL }) {
+  function renderPortfolio({ holdings, watchlist, transactions, cash, unrealized, unrealPct, realized, totalAssets, todayPnL }) {
     const el = document.getElementById('portfolioView');
 
     if (holdings.length === 0 && cash === 0) {
@@ -153,7 +153,7 @@ const DashboardModule = (() => {
       const pnlPct    = cost > 0 ? pnl / cost * 100 : 0;
       const alloc     = totalVal > 0 ? mktVal / totalVal * 100 : 0;
       const qtyFmt    = h.quantity % 1 !== 0 ? Utils.fmt(h.quantity, 3) : Utils.fmt(h.quantity);
-      const wItem     = WatchlistModule.getAll().find(w => w.stockId === h.stockId);
+      const wItem     = (watchlist || []).find(w => w.stockId === h.stockId);
       const aiPoints  = wItem ? AIModule.analyzeStock(wItem, h) : [];
       const aiHint    = aiPoints.length > 1 ? aiPoints[0].text : null;
       return `
@@ -190,9 +190,8 @@ const DashboardModule = (() => {
       </div>` : '';
 
     // Portfolio Health card
-    const txs    = TransactionModule.getAll();
-    const health = AIModule.portfolioHealth(holdings, txs, totalAssets);
-    const behav  = AIModule.behaviorAnalysis(txs, holdings);
+    const health = AIModule.portfolioHealth(holdings, transactions || [], totalAssets);
+    const behav  = AIModule.behaviorAnalysis(transactions || [], holdings);
     const hColor = health.score >= 70 ? 'var(--green)' : health.score >= 40 ? 'var(--yellow)' : 'var(--red)';
 
     el.innerHTML = `
@@ -370,9 +369,8 @@ const DashboardModule = (() => {
 
   // ── Settings ──────────────────────────────────────────────────────────────
 
-  function renderSettings({ settings }) {
-    const pinEnabled = SecurityModule.isPINEnabled();
-    const isDark     = settings.darkMode !== false; // default dark
+  function renderSettings({ settings, pinEnabled = false }) {
+    const isDark = settings.darkMode !== false; // default dark
     document.getElementById('settingsView').innerHTML = `
       <div class="card">
         <div class="card-title">顯示</div>

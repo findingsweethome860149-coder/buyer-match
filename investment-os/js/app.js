@@ -67,19 +67,21 @@ const App = (() => {
     } else if (_page === 'portfolio') {
       DashboardModule.renderPortfolio({
         holdings,
-        cash:        PortfolioModule.getCashBalance(txs),
-        unrealized:  PortfolioModule.getUnrealizedPnL(),
-        unrealPct:   _unrealPct(holdings),
-        realized:    PortfolioModule.getRealizedPnL(txs),
-        totalAssets: PortfolioModule.getTotalAssets(txs),
-        todayPnL:    PortfolioModule.getTodayPnL(),
+        watchlist,
+        transactions: txs,
+        cash:         PortfolioModule.getCashBalance(txs),
+        unrealized:   PortfolioModule.getUnrealizedPnL(),
+        unrealPct:    _unrealPct(holdings),
+        realized:     PortfolioModule.getRealizedPnL(txs),
+        totalAssets:  PortfolioModule.getTotalAssets(txs),
+        todayPnL:     PortfolioModule.getTodayPnL(),
       });
     } else if (_page === 'watchlist') {
       DashboardModule.renderWatchlist({ watchlist });
     } else if (_page === 'history') {
       DashboardModule.renderHistory({ transactions: txs });
     } else if (_page === 'settings') {
-      DashboardModule.renderSettings({ settings });
+      DashboardModule.renderSettings({ settings, pinEnabled: SecurityModule.isPINEnabled() });
     }
   }
 
@@ -128,6 +130,15 @@ const App = (() => {
       if (!stockId || !stockName) { NotificationModule.toast('請填寫股票代號與名稱'); return; }
       if (!quantity || quantity <= 0) { NotificationModule.toast('請填寫股數'); return; }
       if (!price    || price    <= 0) { NotificationModule.toast('請填寫成交價格'); return; }
+
+      if (type === 'sell') {
+        const holding = PortfolioModule.getHoldings().find(x => x.stockId === stockId);
+        if (!holding) { NotificationModule.toast(`${stockId} 不在持股中，無法賣出`); return; }
+        if (quantity > holding.quantity + 0.0001) {
+          NotificationModule.toast(`持有 ${Utils.fmt(holding.quantity, 3)} 股，不能賣出 ${Utils.fmt(quantity, 3)} 股`);
+          return;
+        }
+      }
 
       const tax   = type === 'sell' ? Math.round(quantity * price * TAIWAN_SECURITIES_TAX) : 0;
       const total = type === 'buy'
@@ -433,7 +444,7 @@ const App = (() => {
       s[key] = key === 'defaultFeeRate' ? num : Math.round(num);
     }
     saveSettings(s);
-    DashboardModule.renderSettings({ settings: s });
+    DashboardModule.renderSettings({ settings: s, pinEnabled: SecurityModule.isPINEnabled() });
     NotificationModule.toast('已更新');
   }
 
@@ -494,7 +505,7 @@ const App = (() => {
     SecurityModule.promptSetNew({
       onSuccess: () => {
         NotificationModule.toast('PIN 已設定，下次開啟 App 將要求輸入');
-        DashboardModule.renderSettings({ settings: DB.Settings.get() });
+        DashboardModule.renderSettings({ settings: DB.Settings.get(), pinEnabled: SecurityModule.isPINEnabled() });
         SecurityModule.log('setupPIN');
       },
     });
@@ -507,7 +518,7 @@ const App = (() => {
         SecurityModule.promptSetNew({
           onSuccess: () => {
             NotificationModule.toast('PIN 已更新');
-            DashboardModule.renderSettings({ settings: DB.Settings.get() });
+            DashboardModule.renderSettings({ settings: DB.Settings.get(), pinEnabled: SecurityModule.isPINEnabled() });
           },
         });
       },
@@ -520,7 +531,7 @@ const App = (() => {
       onSuccess: () => {
         SecurityModule.disablePIN();
         NotificationModule.toast('PIN 保護已關閉');
-        DashboardModule.renderSettings({ settings: DB.Settings.get() });
+        DashboardModule.renderSettings({ settings: DB.Settings.get(), pinEnabled: SecurityModule.isPINEnabled() });
       },
     });
   }
