@@ -15,9 +15,11 @@ function scoreStock(watchItem) {
 }
 
 function scoreLabel(score) {
-  if (score >= 80) return '吸引';
-  if (score >= 50) return '觀察';
-  return '偏高';
+  if (score >= 90) return '吸引 ★★★★★';
+  if (score >= 70) return '值得觀察 ★★★★☆';
+  if (score >= 50) return '中性 ★★★☆☆';
+  if (score >= 30) return '偏高 ★★☆☆☆';
+  return '高風險 ★☆☆☆☆';
 }
 
 function getDailySummary({ holdings, watchlist, settings, transactions }) {

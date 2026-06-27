@@ -245,19 +245,24 @@ const App = (() => {
 
     document.getElementById('stockDetailTitle').innerHTML =
       `${w.stockId} ${w.stockName} <span class="score-badge ${sl.cls}">${sl.label}</span>`;
+    const scoreColor = score >= 70 ? 'var(--green)' : score >= 50 ? 'var(--yellow)' : 'var(--red)';
     document.getElementById('stockDetailBody').innerHTML = `
       <div style="margin-bottom:12px">
         <div style="font-size:24px;font-weight:800;margin-bottom:2px">$${Utils.fmt(w.currentPrice || 0, 2)}</div>
         <div style="font-size:13px;color:var(--muted)">目標買入價：$${w.targetPrice ? Utils.fmt(w.targetPrice, 2) : '未設定'}</div>
       </div>
-      <div style="margin-bottom:12px">
-        <div style="font-size:12px;color:var(--muted);margin-bottom:6px">AI 評分</div>
-        <div style="display:flex;align-items:center;gap:8px">
-          <div style="flex:1;height:6px;border-radius:3px;background:var(--surface2)">
-            <div style="width:${score}%;height:6px;border-radius:3px;background:${score>=80?'var(--green)':score>=50?'var(--yellow)':'var(--red)'}"></div>
-          </div>
-          <span style="font-size:13px;font-weight:700">${score}/100</span>
+      <div style="margin-bottom:12px;padding:10px;background:var(--surface2);border-radius:8px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <span style="font-size:12px;color:var(--muted)">AI 評分</span>
+          <span style="font-size:18px;color:${scoreColor}">${sl.stars}</span>
         </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="flex:1;height:6px;border-radius:3px;background:var(--surface)">
+            <div style="width:${score}%;height:6px;border-radius:3px;background:${scoreColor}"></div>
+          </div>
+          <span style="font-size:14px;font-weight:700;color:${scoreColor}">${score}/100</span>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">${sl.label} — ${_scoreTip(sl.tier)}</div>
       </div>
       ${points.map(p => `
         <div class="insight-item">
@@ -583,6 +588,17 @@ const App = (() => {
   }
 
   // ─── Private helpers ──────────────────────────────────────────────────────
+
+  function _scoreTip(tier) {
+    const tips = {
+      'high':     '值得持續追蹤，現價具吸引力',
+      'mid-high': '值得觀察，接近合理買入區間',
+      'mid':      '中性，等待更好的買入時機',
+      'mid-low':  '偏高，建議耐心等待回落',
+      'low':      '現價偏高風險區，謹慎評估',
+    };
+    return tips[tier] || '';
+  }
 
   function _onTxTypeChange() {
     const type   = document.getElementById('txType').value;

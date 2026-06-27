@@ -189,6 +189,12 @@ const DashboardModule = (() => {
         <span class="${Utils.pnlCls(todayPnL)}" style="font-weight:700">${Utils.pnlSign(todayPnL)}$${Utils.fmt(Math.abs(todayPnL))}</span>
       </div>` : '';
 
+    // Portfolio Health card
+    const txs    = TransactionModule.getAll();
+    const health = AIModule.portfolioHealth(holdings, txs, totalAssets);
+    const behav  = AIModule.behaviorAnalysis(txs, holdings);
+    const hColor = health.score >= 70 ? 'var(--green)' : health.score >= 40 ? 'var(--yellow)' : 'var(--red)';
+
     el.innerHTML = `
       ${todayBar}
       <div class="card">
@@ -203,6 +209,29 @@ const DashboardModule = (() => {
       <div class="card">
         <div class="card-title">持股明細 <span style="font-size:11px;color:var(--muted)">點市值更新現價</span></div>
         ${holdingRows}
+      </div>` : ''}
+      <div class="card">
+        <div class="card-title">Portfolio 健康度</div>
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+          <div style="font-size:32px;font-weight:900;color:${hColor}">${health.score}</div>
+          <div style="flex:1">
+            <div style="height:6px;border-radius:3px;background:var(--surface2)">
+              <div style="width:${health.score}%;height:6px;border-radius:3px;background:${hColor};transition:width .4s"></div>
+            </div>
+            <div style="font-size:12px;color:var(--muted);margin-top:4px">滿分 100 分（不以報酬率評分）</div>
+          </div>
+        </div>
+        ${health.reasons.map(r => `<div style="font-size:12px;color:var(--muted);padding:3px 0">• ${r}</div>`).join('')}
+      </div>
+      ${behav.length > 0 ? `
+      <div class="card">
+        <div class="card-title">AI 行為分析</div>
+        ${behav.map(b => `
+          <div class="insight-item">
+            <div class="insight-icon">${b.icon}</div>
+            <div class="insight-text" style="font-size:13px">${b.text}</div>
+          </div>`).join('')}
+        <div style="font-size:11px;color:var(--muted);margin-top:8px;text-align:center">AI 分析僅供參考，不構成投資建議。</div>
       </div>` : ''}
     `;
   }

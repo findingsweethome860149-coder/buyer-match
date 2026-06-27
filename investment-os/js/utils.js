@@ -19,8 +19,8 @@ const Utils = (() => {
   function pnlSign(v) { return v >= 0 ? '+' : ''; }
 
   function calcFee(amount, feeRatePct, isSell = false) {
-    const fee = Math.max(1, Math.round(amount * feeRatePct / 100));
-    return isSell ? fee + Math.round(amount * 0.003) : fee;
+    // Commission only — tax (0.3%) is tracked separately on the transaction record
+    return Math.max(20, Math.round(amount * feeRatePct / 100));
   }
 
   return { fmt, uid, today, pnlCls, pnlSign, calcFee };
