@@ -27,6 +27,18 @@ const App = (() => {
   // ─── Navigation ────────────────────────────────────────────────────────────
 
   function navigate(page) {
+    if (page === 'settings' && SecurityModule.isPINEnabled()) {
+      SecurityModule.prompt({
+        title: '請輸入 PIN 進入設定',
+        onSuccess: () => _doNavigate(page),
+        onCancel:  () => {},
+      });
+      return;
+    }
+    _doNavigate(page);
+  }
+
+  function _doNavigate(page) {
     _page = page;
     document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.page === page));
     document.querySelectorAll('.page').forEach(p => p.classList.toggle('active', p.id === 'page-' + page));
@@ -475,14 +487,17 @@ const App = (() => {
   function exportData() {
     try {
       const data = DB.exportAll();
+      const now  = new Date();
+      const pad  = n => String(n).padStart(2, '0');
+      const ts   = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = `aios-backup-${Utils.today()}.json`;
+      const a    = document.createElement('a');
+      a.href     = URL.createObjectURL(blob);
+      a.download = `AIInvestmentOS_Backup_${ts}.json`;
       a.click();
       SecurityModule.log('exportData', Utils.today());
+      NotificationModule.toast('備份已下載');
     } catch (err) {
-      console.error('exportData error:', err);
       NotificationModule.toast('匯出失敗，請稍後再試。');
     }
   }
@@ -499,20 +514,22 @@ const App = (() => {
           const reader = new FileReader();
           reader.onload = (ev) => {
             try {
-              const data = JSON.parse(ev.target.result);
+              let data;
+              try { data = JSON.parse(ev.target.result); }
+              catch { NotificationModule.toast('備份檔格式不正確。'); return; }
               DB.importAll(data);
+              PortfolioModule.recalculate(DB.Transactions.getAll());
               SecurityModule.log('importData', file.name);
               NotificationModule.toast('資料匯入成功，重新載入中…');
               setTimeout(() => location.reload(), 1200);
             } catch (err) {
-              NotificationModule.toast('匯入失敗：' + err.message);
+              NotificationModule.toast(err.message || '備份檔格式不正確。');
             }
           };
           reader.readAsText(file);
         };
         input.click();
-      } catch (err) {
-        console.error('importData error:', err);
+      } catch {
         NotificationModule.toast('匯入失敗，請稍後再試。');
       }
     };
@@ -561,15 +578,19 @@ const App = (() => {
   }
 
   function clearAllData() {
-    if (!confirm('確定要清除所有資料？此操作無法復原。')) return;
     const _doDelete = () => {
-      DB.clear();
-      SecurityModule.log('clearAllData');
-      NotificationModule.toast('資料已清除，重新載入中…');
-      setTimeout(() => location.reload(), 1200);
+      if (!confirm('確定要清除所有資料？此操作無法復原。')) return;
+      try {
+        DB.clear();
+        SecurityModule.log('clearAllData');
+        NotificationModule.toast('資料已清除，重新載入中…');
+        setTimeout(() => location.reload(), 1200);
+      } catch (err) {
+        NotificationModule.toast('清除失敗，請稍後再試。');
+      }
     };
     if (SecurityModule.isPINEnabled()) {
-      SecurityModule.prompt({ title: '請輸入 PIN 確認刪除', onSuccess: _doDelete });
+      SecurityModule.prompt({ title: '請輸入 PIN 確認清除資料', onSuccess: _doDelete });
     } else {
       _doDelete();
     }

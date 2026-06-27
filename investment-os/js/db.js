@@ -124,13 +124,35 @@ const DB = (() => {
   }
 
   function importAll(data) {
-    if (!data || data.version !== '1.0') throw new Error('格式不符或版本不相容');
-    if (Array.isArray(data.transactions)) Transactions.save(data.transactions);
-    if (Array.isArray(data.watchlist))    Watchlist.save(data.watchlist);
-    if (Array.isArray(data.portfolio))    Portfolio.save(data.portfolio);
-    if (data.settings)                    Settings.save(data.settings);
-    if (data.goal)                        Goal.save(data.goal);
-    if (data.user)                        User.save(data.user);
+    if (!data || data.version !== '1.0') throw new Error('備份檔格式不正確。');
+
+    // Snapshot current state for rollback
+    const snapshot = {
+      transactions: Transactions.getAll(),
+      watchlist:    Watchlist.getAll(),
+      portfolio:    Portfolio.getAll(),
+      settings:     Settings.get(),
+      goal:         Goal.get(),
+      user:         User.get(),
+    };
+
+    try {
+      if (Array.isArray(data.transactions)) Transactions.save(data.transactions);
+      if (Array.isArray(data.watchlist))    Watchlist.save(data.watchlist);
+      if (Array.isArray(data.portfolio))    Portfolio.save(data.portfolio);
+      if (data.settings)                    Settings.save(data.settings);
+      if (data.goal)                        Goal.save(data.goal);
+      if (data.user)                        User.save(data.user);
+    } catch (err) {
+      // Rollback all writes on partial failure
+      Transactions.save(snapshot.transactions);
+      Watchlist.save(snapshot.watchlist);
+      Portfolio.save(snapshot.portfolio);
+      Settings.save(snapshot.settings);
+      Goal.save(snapshot.goal);
+      User.save(snapshot.user);
+      throw new Error('備份檔格式不正確。');
+    }
   }
 
   // ── Legacy low-level (used by security.js audit log + ready flag) ─────────
