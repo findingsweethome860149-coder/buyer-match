@@ -22,6 +22,7 @@ const App = (() => {
       reminderDay: 5,
       defaultFeeRate: 0.1425,
       investmentGoal: '',
+      goalAmount: 0,
     });
   }
 
@@ -54,10 +55,11 @@ const App = (() => {
     const settings = getSettings();
 
     if (_page === 'home') {
-      const aiResult   = AIModule.analyze({ holdings, watchlist, settings, transactions: txs });
-      const cash       = PortfolioModule.getCashBalance(txs);
+      const aiResult    = AIModule.analyze({ holdings, watchlist, settings, transactions: txs });
+      const cash        = PortfolioModule.getCashBalance(txs);
       const totalAssets = PortfolioModule.getTotalAssets(txs);
-      const recentTxs  = [...txs].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5);
+      const unrealized  = PortfolioModule.getUnrealizedPnL();
+      const realized    = PortfolioModule.getRealizedPnL(txs);
       DashboardModule.renderHome({
         aiResult,
         holdings,
@@ -65,7 +67,8 @@ const App = (() => {
         cash,
         totalAssets,
         settings,
-        recentTxs,
+        todayPnL:      PortfolioModule.getTodayPnL(),
+        cumulativePnL: unrealized + realized,
       });
     } else if (_page === 'portfolio') {
       DashboardModule.renderPortfolio({
@@ -296,15 +299,38 @@ const App = (() => {
   }
 
   function filterHistory(q) {
+    _applyHistoryFilters();
+  }
+
+  function filterHistoryType(type) {
+    document.querySelectorAll('.hist-filter-btn').forEach(b =>
+      b.classList.toggle('selected', b.dataset.type === type));
+    _applyHistoryFilters();
+  }
+
+  function sortHistory(by) {
+    document.querySelectorAll('.hist-sort-btn').forEach(b =>
+      b.classList.toggle('selected', b.dataset.sort === by));
+    _applyHistoryFilters();
+  }
+
+  function _applyHistoryFilters() {
     const cache = DashboardModule._histCache;
     if (!cache) return;
-    const lq   = q.trim().toLowerCase();
-    const list = lq
-      ? cache.list.filter(t =>
-          (t.symbol || '').toLowerCase().includes(lq) ||
-          (t.name   || '').toLowerCase().includes(lq) ||
-          (t.date   || '').includes(lq))
-      : cache.list;
+    const q    = (document.getElementById('historySearch')?.value || '').trim().toLowerCase();
+    const type = document.querySelector('.hist-filter-btn.selected')?.dataset.type || 'all';
+    const sort = document.querySelector('.hist-sort-btn.selected')?.dataset.sort || 'date-desc';
+
+    let list = cache.list;
+    if (q) list = list.filter(t =>
+      (t.symbol || '').toLowerCase().includes(q) ||
+      (t.name   || '').toLowerCase().includes(q) ||
+      (t.date   || '').includes(q));
+    if (type !== 'all') list = list.filter(t => t.type === type);
+    if (sort === 'date-asc')    list = [...list].sort((a, b) => a.date.localeCompare(b.date));
+    else if (sort === 'date-desc') list = [...list].sort((a, b) => b.date.localeCompare(a.date));
+    else if (sort === 'amt-desc')  list = [...list].sort((a, b) => (b.shares*b.price||b.cashAmt||0) - (a.shares*a.price||a.cashAmt||0));
+
     const card = document.getElementById('historyRows');
     if (card) card.innerHTML = `<div class="card-title">所有交易</div>${cache.rowFn(list) || '<div style="padding:16px;color:var(--muted);text-align:center">找不到符合的紀錄</div>'}`;
   }
@@ -356,12 +382,32 @@ const App = (() => {
 
   // ─── Settings actions ─────────────────────────────────────────────────────
 
+  function toggleAiBrief() {
+    const el = document.getElementById('aiBriefDetail');
+    if (!el) return;
+    const open = el.style.display === 'none';
+    el.style.display = open ? 'block' : 'none';
+    const btn = el.previousElementSibling?.querySelector('span:last-child');
+    if (btn) btn.textContent = open ? '收起 ‹' : '查看原因 ›';
+  }
+
+  function viewHoldingHistory(symbol) {
+    navigate('history');
+    setTimeout(() => {
+      const input = document.getElementById('historySearch');
+      if (input) { input.value = symbol; filterHistory(symbol); }
+    }, 100);
+  }
+
   function editSetting(key, label, current) {
     const val = prompt(label, current);
     if (val === null || val.trim() === '') return;
     const s = getSettings();
     if (key === 'investmentGoal') {
       s[key] = val.trim();
+    } else if (key === 'goalAmount') {
+      const num = parseFloat(val);
+      s[key] = (!isNaN(num) && num > 0) ? num : 0;
     } else {
       const num = parseFloat(val);
       if (isNaN(num) || num <= 0) { NotificationModule.toast('請輸入有效數字'); return; }
@@ -550,10 +596,14 @@ const App = (() => {
     deleteTx,
     addWatch,
     removeWatch,
+    toggleAiBrief,
+    viewHoldingHistory,
     openStockDetail,
     stockDetailBuy,
     filterWatchlist,
     filterHistory,
+    filterHistoryType,
+    sortHistory,
     openUpdatePrice,
     confirmUpdatePrice,
     editSetting,

@@ -10,155 +10,129 @@ const DashboardModule = (() => {
 
   // ── Home ──────────────────────────────────────────────────────────────────
 
-  function renderHome({ aiResult, holdings, watchlist, cash, totalAssets, settings, recentTxs }) {
+  function renderHome({ aiResult, holdings, watchlist, cash, totalAssets, settings, todayPnL, cumulativePnL }) {
     const { items, actionCount } = aiResult;
 
-    // ① 今日一句建議 (AI Brief) — always the biggest block
-    let cls, icon, title, sub;
-    if (actionCount === 0) {
-      cls = 'status-calm'; icon = '😌';
-      title = '今天不用交易';
-      sub   = '市場平靜，安心生活。<br>長期投資的力量在於耐心等待。';
-    } else if (actionCount === 1) {
-      cls = 'status-attention'; icon = '👀';
-      title = '有一件事值得確認';
-      sub   = '花 1 分鐘看看下方的 AI 提醒。';
-    } else {
-      cls = 'status-action'; icon = '📋';
-      title = `有 ${actionCount} 件事需要確認`;
-      sub   = '請花 3 分鐘檢視以下提醒。';
-    }
+    // ① 今日 AI 建議
+    let icon, title;
+    if (actionCount === 0) { icon = '😌'; title = '今天不用交易。'; }
+    else if (actionCount === 1) { icon = '👀'; title = '有一件事值得確認。'; }
+    else { icon = '📋'; title = `有 ${actionCount} 件事需要確認。`; }
     _set('dailyBrief', `
-      <div class="brief-status ${cls}">
-        <div class="brief-icon">${icon}</div>
-        <div class="brief-title">${title}</div>
-        <div class="brief-sub">${sub}</div>
+      <div class="card" id="aiBriefCard">
+        <div class="card-title">今日 AI 建議</div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:28px">${icon}</span>
+          <span style="font-size:15px;font-weight:600;flex:1">${title}</span>
+          ${items.length ? `<span style="font-size:13px;color:var(--accent);cursor:pointer;flex-shrink:0" onclick="App.toggleAiBrief()">查看原因 ›</span>` : ''}
+        </div>
+        <div id="aiBriefDetail" style="display:none;margin-top:12px;border-top:1px solid var(--border);padding-top:10px">
+          ${items.map(i => `
+            <div class="insight-item">
+              <div class="insight-icon">${i.icon}</div>
+              <div class="insight-text">${i.text}${i.decision ? `<div class="insight-decision">💬 ${i.decision}</div>` : ''}</div>
+            </div>`).join('')}
+          <div style="margin-top:8px;font-size:11px;color:var(--muted);text-align:center">AI 分析僅供參考，所有決策由你決定。</div>
+        </div>
       </div>
-      ${items.length ? _aiCard(items) : ''}
     `);
 
-    // ② 目前資產
-    const stockVal  = holdings.reduce((s, h) => s + h.shares * (h.currentPrice || h.avgCost), 0);
-    const totalCost = holdings.reduce((s, h) => s + h.shares * h.avgCost, 0);
-    const pnl       = stockVal - totalCost;
-    const pnlPct    = totalCost > 0 ? pnl / totalCost * 100 : 0;
-    const goalLabel = settings.investmentGoal || '投資目標';
+    // ② 資產摘要
     _set('assetsHome', `
       <div class="card">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-          <div class="card-title" style="margin-bottom:0">目前資產</div>
-          <span class="goal-tag">🎯 ${goalLabel}</span>
-        </div>
+        <div class="card-title">資產摘要</div>
         <div class="asset-row">
           <span class="asset-label">總資產</span>
           <span class="asset-total">$${Utils.fmt(totalAssets)}</span>
         </div>
         <div class="asset-row">
+          <span class="asset-label">今日損益</span>
+          <span class="asset-value ${Utils.pnlCls(todayPnL)}">${todayPnL !== 0 ? Utils.pnlSign(todayPnL) + '$' + Utils.fmt(Math.abs(todayPnL)) : '—'}</span>
+        </div>
+        <div class="asset-row">
+          <span class="asset-label">累積損益</span>
+          <span class="asset-value ${Utils.pnlCls(cumulativePnL)}">${Utils.pnlSign(cumulativePnL)}$${Utils.fmt(Math.abs(cumulativePnL))}</span>
+        </div>
+        <div class="asset-row">
           <span class="asset-label">現金</span>
           <span class="asset-value ${cash < 0 ? 'negative' : ''}">$${Utils.fmt(cash)}</span>
         </div>
-        <div class="asset-row">
-          <span class="asset-label">持股市值</span>
-          <span class="asset-value">$${Utils.fmt(stockVal)}</span>
-        </div>
-        ${holdings.length > 0 ? `
-        <div class="asset-row" style="border-top:1px solid var(--border);margin-top:4px;padding-top:10px">
-          <span class="asset-label">未實現損益</span>
-          <span class="asset-value ${Utils.pnlCls(pnl)}">${Utils.pnlSign(pnl)}$${Utils.fmt(Math.abs(pnl))} (${Utils.pnlSign(pnlPct)}${Utils.fmt(pnlPct, 2)}%)</span>
-        </div>` : ''}
       </div>
     `);
 
-    // ③ Watchlist — always shown (not only when hits)
-    if (watchlist.length > 0) {
-      const rows = watchlist.slice(0, 4).map(w => {
-        const met  = w.currentPrice && w.targetPrice && w.currentPrice <= w.targetPrice;
-        const diff = (w.currentPrice && w.targetPrice)
-          ? ((w.currentPrice / w.targetPrice - 1) * 100) : null;
-        return `
-          <div class="watch-row" style="padding:8px 0">
-            <div>
-              <span style="font-size:15px;font-weight:700">${w.symbol}</span>
-              <span style="font-size:13px;color:var(--muted);margin-left:6px">${w.name}</span>
+    // ③ Goal Tracker
+    const goalLabel  = settings.investmentGoal || '尚未設定目標';
+    const goalAmount = settings.goalAmount || 0;
+    const goalPct    = (goalAmount > 0 && totalAssets > 0) ? Math.min(100, totalAssets / goalAmount * 100) : 0;
+    _set('watchlistHome', `
+      <div class="card">
+        <div class="card-title">Goal Tracker</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <span style="font-size:14px;font-weight:600">🎯 ${goalLabel}</span>
+          <span style="font-size:12px;color:var(--accent);cursor:pointer" onclick="App.editSetting('investmentGoal','投資目標','${goalLabel}')">更改 ✏️</span>
+        </div>
+        ${goalAmount > 0 ? `
+          <div style="margin-bottom:6px">
+            <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:4px">
+              <span>完成進度</span>
+              <span>${Utils.fmt(goalPct, 1)}%（目標 $${Utils.fmt(goalAmount)}）</span>
             </div>
-            <div style="text-align:right">
-              <span class="asset-value ${met ? 'target-met' : ''}">$${Utils.fmt(w.currentPrice || 0, 2)}${met ? ' 🎯' : ''}</span>
-              ${diff !== null ? `<div style="font-size:11px;${met ? 'color:var(--green)' : 'color:var(--muted)'}">${diff > 0 ? '+' : ''}${Utils.fmt(diff, 1)}%</div>` : ''}
+            <div style="height:8px;border-radius:4px;background:var(--surface2)">
+              <div style="width:${goalPct}%;height:8px;border-radius:4px;background:var(--accent);transition:width .4s"></div>
             </div>
           </div>
-        `;
-      }).join('');
-      const more = watchlist.length > 4 ? `<div style="font-size:12px;color:var(--muted);text-align:center;padding-top:6px">還有 ${watchlist.length - 4} 檔 →</div>` : '';
-      _set('watchlistHome', `
-        <div class="card">
-          <div class="card-title">觀察清單</div>
-          ${rows}
-          ${more}
-        </div>
-      `);
-    } else {
-      _set('watchlistHome', `
-        <div class="card">
-          <div class="card-title">觀察清單</div>
-          <div style="padding:12px 0;color:var(--muted);font-size:14px;text-align:center">
-            點右下角 ＋ 加入第一檔股票
+          <div style="font-size:12px;color:var(--muted)">預估完成日期：計算中…</div>
+        ` : `
+          <div style="font-size:13px;color:var(--muted)">
+            設定目標金額以追蹤進度
+            <span style="color:var(--accent);cursor:pointer;margin-left:6px" onclick="App.editSetting('goalAmount','目標金額（元）',0)">設定 →</span>
           </div>
-        </div>
-      `);
-    }
+        `}
+      </div>
+    `);
 
-    // ④ 今日提醒
-    const d = new Date().getDate();
-    const reminders = [];
-    if (d >= settings.reminderDay && d <= settings.reminderDay + 4) {
-      reminders.push({ icon: '📅', text: `本月定期投入日：預算 <strong>$${Utils.fmt(settings.monthlyBudget)}</strong>` });
-    }
-    const hits = watchlist.filter(w => w.currentPrice && w.targetPrice && w.currentPrice <= w.targetPrice);
-    hits.forEach(w => {
-      reminders.push({ icon: '🎯', text: `<strong>${w.symbol} ${w.name}</strong> 已達目標買入價 $${Utils.fmt(w.targetPrice, 2)}` });
-    });
-    if (reminders.length > 0) {
-      _set('remindersHome', `
-        <div class="card">
-          <div class="card-title">今日提醒</div>
-          ${reminders.map(r => `
-            <div class="insight-item">
-              <div class="insight-icon">${r.icon}</div>
-              <div class="insight-text">${r.text}</div>
-            </div>
-          `).join('')}
-        </div>
-      `);
-    } else {
-      _set('remindersHome', '');
-    }
+    // ④ Watchlist（前 5 檔）
+    _set('remindersHome', watchlist.length > 0 ? `
+      <div class="card">
+        <div class="card-title">觀察清單</div>
+        ${watchlist.slice(0, 5).map(w => {
+          const met   = w.currentPrice && w.targetPrice && w.currentPrice <= w.targetPrice;
+          const score = AIModule.scoreStock(w);
+          const sl    = AIModule.scoreLabel(score);
+          return `
+            <div class="watch-row" onclick="App.openStockDetail('${w.id}')" style="cursor:pointer;padding:8px 0">
+              <div>
+                <span style="font-size:15px;font-weight:700">${w.symbol}</span>
+                <span style="font-size:12px;color:var(--muted);margin-left:5px">${w.name}</span>
+                ${met ? '<span style="font-size:12px">🎯</span>' : ''}
+              </div>
+              <div style="text-align:right">
+                <div style="font-size:14px;font-weight:600 ${met ? ';color:var(--green)' : ''}">$${Utils.fmt(w.currentPrice || 0, 2)}</div>
+                <span class="score-badge ${sl.cls}">${sl.label}</span>
+              </div>
+            </div>`;
+        }).join('')}
+        ${watchlist.length > 5 ? `<div style="font-size:12px;color:var(--muted);text-align:center;padding-top:6px">還有 ${watchlist.length - 5} 檔 →</div>` : ''}
+      </div>
+    ` : `
+      <div class="card">
+        <div class="card-title">觀察清單</div>
+        <div style="padding:10px 0;color:var(--muted);font-size:14px;text-align:center">點右下角 ＋ 加入第一檔股票</div>
+      </div>
+    `);
 
-    // ⑤ 最新活動
-    if (recentTxs && recentTxs.length > 0) {
-      const LABEL = { buy:'買入', sell:'賣出', deposit:'入金', withdraw:'出金' };
-      const rows = recentTxs.map(tx => {
-        const isTrade = tx.type === 'buy' || tx.type === 'sell';
-        const desc = isTrade
-          ? `${LABEL[tx.type]} ${tx.symbol} ${tx.name}`
-          : `${LABEL[tx.type]} $${Utils.fmt(tx.cashAmt)}`;
-        const dateStr = tx.date ? tx.date.slice(5) : '';
-        return `
-          <div class="activity-item">
-            <div class="activity-dot activity-dot-${tx.type}"></div>
-            <div class="activity-text">${desc}</div>
-            <div class="activity-date">${dateStr}</div>
-          </div>
-        `;
-      }).join('');
-      _set('activityHome', `
-        <div class="card">
-          <div class="card-title">最新活動</div>
-          ${rows}
-        </div>
-      `);
-    } else {
-      _set('activityHome', '');
-    }
+    // ⑤ 通知（最新 3 則 AI 提醒）
+    const notifs = items.filter(i => i.priority <= 3).slice(0, 3);
+    _set('activityHome', notifs.length > 0 ? `
+      <div class="card">
+        <div class="card-title">通知</div>
+        ${notifs.map(n => `
+          <div class="insight-item">
+            <div class="insight-icon">${n.icon}</div>
+            <div class="insight-text" style="font-size:13px">${n.text}</div>
+          </div>`).join('')}
+      </div>
+    ` : '');
   }
 
   // ── Portfolio ─────────────────────────────────────────────────────────────
@@ -171,30 +145,39 @@ const DashboardModule = (() => {
       return;
     }
 
+    const totalVal = holdings.reduce((s, x) => s + x.shares * (x.currentPrice || x.avgCost), 0);
     const holdingRows = holdings.map(h => {
-      const mktVal = h.shares * (h.currentPrice || h.avgCost);
-      const cost   = h.shares * h.avgCost;
-      const pnl    = mktVal - cost;
-      const pnlPct = cost > 0 ? pnl / cost * 100 : 0;
-      const totalVal = holdings.reduce((s, x) => s + x.shares * (x.currentPrice || x.avgCost), 0);
-      const alloc  = totalVal > 0 ? mktVal / totalVal * 100 : 0;
+      const mktVal    = h.shares * (h.currentPrice || h.avgCost);
+      const cost      = h.shares * h.avgCost;
+      const pnl       = mktVal - cost;
+      const pnlPct    = cost > 0 ? pnl / cost * 100 : 0;
+      const alloc     = totalVal > 0 ? mktVal / totalVal * 100 : 0;
       const sharesFmt = h.shares % 1 !== 0 ? Utils.fmt(h.shares, 3) : Utils.fmt(h.shares);
+      const wItem     = WatchlistModule.getAll().find(w => w.symbol === h.symbol);
+      const aiPoints  = wItem ? AIModule.analyzeStock(wItem, h) : [];
+      const aiHint    = aiPoints.length > 1 ? aiPoints[0].text : null;
       return `
-        <div class="stock-row">
-          <div>
-            <div class="stock-symbol">${h.symbol}</div>
-            <div class="stock-name">${h.name} · ${sharesFmt} 股</div>
-            <div style="margin-top:5px">
-              <span class="chip chip-gray">均價 $${Utils.fmt(h.avgCost, 2)}</span>
-              <span class="chip chip-blue">${Utils.fmt(alloc, 1)}%</span>
+        <div class="stock-row" style="flex-direction:column;align-items:stretch;gap:8px">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div>
+              <div class="stock-symbol">${h.symbol}</div>
+              <div class="stock-name">${h.name} · ${sharesFmt} 股</div>
+              <div style="margin-top:5px">
+                <span class="chip chip-gray">均價 $${Utils.fmt(h.avgCost, 2)}</span>
+                <span class="chip chip-blue">${Utils.fmt(alloc, 1)}%</span>
+              </div>
+            </div>
+            <div class="stock-right">
+              <div class="stock-value" onclick="App.openUpdatePrice('${h.id}','portfolio')" style="cursor:pointer">
+                $${Utils.fmt(mktVal)} ✏️
+              </div>
+              <div class="stock-sub ${Utils.pnlCls(pnl)}">${Utils.pnlSign(pnl)}${Utils.fmt(pnlPct, 2)}%</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:2px">現價 $${Utils.fmt(h.currentPrice || h.avgCost, 2)}</div>
             </div>
           </div>
-          <div class="stock-right">
-            <div class="stock-value" onclick="App.openUpdatePrice('${h.id}','portfolio')" style="cursor:pointer">
-              $${Utils.fmt(mktVal)} ✏️
-            </div>
-            <div class="stock-sub ${Utils.pnlCls(pnl)}">${Utils.pnlSign(pnl)}${Utils.fmt(pnlPct, 2)}%</div>
-            <div style="font-size:11px;color:var(--muted);margin-top:2px">現價 $${Utils.fmt(h.currentPrice || h.avgCost, 2)}</div>
+          ${aiHint ? `<div style="font-size:12px;color:var(--muted);padding:6px 8px;background:var(--surface2);border-radius:6px">💬 ${aiHint}</div>` : ''}
+          <div style="text-align:right">
+            <span style="font-size:12px;color:var(--accent);cursor:pointer" onclick="App.viewHoldingHistory('${h.symbol}')">查看交易紀錄 →</span>
           </div>
         </div>
       `;
@@ -331,15 +314,28 @@ const DashboardModule = (() => {
         <div class="total-row"><span class="total-label">交易筆數</span><span>${txs.length} 筆</span></div>
       </div>
       <input class="search-bar" id="historySearch" placeholder="搜尋股票代號、名稱或日期…" oninput="App.filterHistory(this.value)">
+      <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
+        <button class="btn-sm hist-filter-btn selected" data-type="all"    onclick="App.filterHistoryType('all')">全部</button>
+        <button class="btn-sm hist-filter-btn"          data-type="buy"    onclick="App.filterHistoryType('buy')">買進</button>
+        <button class="btn-sm hist-filter-btn"          data-type="sell"   onclick="App.filterHistoryType('sell')">賣出</button>
+        <button class="btn-sm hist-filter-btn"          data-type="deposit" onclick="App.filterHistoryType('deposit')">入金</button>
+        <button class="btn-sm hist-filter-btn"          data-type="withdraw" onclick="App.filterHistoryType('withdraw')">出金</button>
+        <span style="margin-left:auto;display:flex;gap:6px">
+          <button class="btn-sm hist-sort-btn selected" data-sort="date-desc" onclick="App.sortHistory('date-desc')">新→舊</button>
+          <button class="btn-sm hist-sort-btn"          data-sort="date-asc"  onclick="App.sortHistory('date-asc')">舊→新</button>
+          <button class="btn-sm hist-sort-btn"          data-sort="amt-desc"  onclick="App.sortHistory('amt-desc')">金額↓</button>
+        </span>
+      </div>
       <div class="card" id="historyRows">
         <div class="card-title">所有交易</div>
         ${rows}
       </div>
     `;
     DashboardModule._histCache = { list: txs, rowFn: (list) => list.map(tx => {
-      const isTrade = tx.type === 'buy' || tx.type === 'sell';
-      const amount  = isTrade ? (tx.shares * tx.price) : tx.cashAmt;
-      const sharesFmt = tx.shares % 1 !== 0 ? Utils.fmt(tx.shares, 3) : Utils.fmt(tx.shares);
+      const isTrade   = tx.type === 'buy' || tx.type === 'sell';
+      const amount    = isTrade ? (tx.shares * tx.price) : tx.cashAmt;
+      const sharesFmt = tx.shares && tx.shares % 1 !== 0 ? Utils.fmt(tx.shares, 3) : Utils.fmt(tx.shares || 0);
+      const secTax    = tx.type === 'sell' ? Utils.fmt(tx.shares * tx.price * 0.003) : null;
       return `
         <div class="tx-row">
           <div style="flex:1;min-width:0">
@@ -354,7 +350,8 @@ const DashboardModule = (() => {
           <div style="flex-shrink:0;padding-left:12px">
             <div class="tx-amount ${CLS[tx.type]}">${SIGN[tx.type]}$${Utils.fmt(amount)}</div>
             ${isTrade ? `<div class="tx-sub">${sharesFmt} 股 @ $${Utils.fmt(tx.price, 2)}</div>` : ''}
-            ${tx.fee    ? `<div class="tx-sub">手續費 $${Utils.fmt(tx.fee)}</div>` : ''}
+            ${tx.fee  ? `<div class="tx-sub">手續費 $${Utils.fmt(tx.fee)}</div>` : ''}
+            ${secTax  ? `<div class="tx-sub">證交稅 $${secTax}</div>` : ''}
             <button class="btn-sm" onclick="App.deleteTx('${tx.id}')" style="margin-top:6px">刪除</button>
           </div>
         </div>
@@ -367,12 +364,19 @@ const DashboardModule = (() => {
   function renderSettings({ settings }) {
     document.getElementById('settingsView').innerHTML = `
       <div class="card">
-        <div class="card-title">投資設定</div>
-        ${settings.investmentGoal ? `
+        <div class="card-title">投資目標</div>
         <div class="setting-row">
-          <span class="setting-label">投資目標</span>
-          <span class="setting-value" onclick="App.editSetting('investmentGoal','投資目標','${settings.investmentGoal}')">${settings.investmentGoal} ✏️</span>
-        </div>` : ''}
+          <span class="setting-label">目標名稱</span>
+          <span class="setting-value" onclick="App.editSetting('investmentGoal','投資目標',${JSON.stringify(settings.investmentGoal || '')})">${settings.investmentGoal || '未設定'} ✏️</span>
+        </div>
+        <div class="setting-row">
+          <span class="setting-label">目標金額</span>
+          <span class="setting-value" onclick="App.editSetting('goalAmount','目標金額（元）',${settings.goalAmount || 0})">${settings.goalAmount ? '$' + Utils.fmt(settings.goalAmount) : '未設定'} ✏️</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">投資設定</div>
         <div class="setting-row">
           <span class="setting-label">每月投資預算</span>
           <span class="setting-value" onclick="App.editSetting('monthlyBudget','每月投資預算（元）',${settings.monthlyBudget})">$${Utils.fmt(settings.monthlyBudget)} ✏️</span>
@@ -384,6 +388,14 @@ const DashboardModule = (() => {
         <div class="setting-row">
           <span class="setting-label">預設手續費率</span>
           <span class="setting-value" onclick="App.editSetting('defaultFeeRate','手續費率（%）',${settings.defaultFeeRate})">${settings.defaultFeeRate}% ✏️</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">安全</div>
+        <div class="setting-row">
+          <span class="setting-label">PIN 鎖定</span>
+          <span style="font-size:13px;color:var(--muted)">⏳ 即將推出</span>
         </div>
       </div>
 
@@ -422,10 +434,16 @@ const DashboardModule = (() => {
       </div>
 
       <div class="card">
-        <div class="card-title" style="color:var(--red)">資料管理</div>
+        <div class="card-title">資料管理</div>
         <p style="font-size:13px;color:var(--muted);margin-bottom:12px">所有資料儲存於你的裝置本機，不會上傳至任何伺服器。</p>
-        <button class="btn btn-danger" onclick="App.exportData()" style="margin-bottom:8px">匯出資料（JSON）</button>
-        <button class="btn btn-danger" onclick="App.clearAllData()">清除所有資料</button>
+        <div class="setting-row">
+          <span class="setting-label">資料備份</span>
+          <span style="font-size:13px;color:var(--muted)">⏳ 即將推出</span>
+        </div>
+        <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px">
+          <button class="btn btn-danger" onclick="App.exportData()">資料匯出（JSON）</button>
+          <button class="btn btn-danger" onclick="App.clearAllData()">清除所有資料</button>
+        </div>
       </div>
     `;
   }
