@@ -321,8 +321,10 @@ const App = (() => {
       const duplicate = WatchlistModule.getAll().find(w => w.stockId === stockId);
       if (duplicate) { NotificationModule.toast(`${stockId} 已在觀察清單中`); return; }
 
-      WatchlistModule.add({ stockId, stockName, currentPrice: current, targetPrice: target, memo });
-      ['watchSymbol','watchName','watchCurrent','watchTarget','watchNote'].forEach(id => {
+      const alertHigh = parseFloat(document.getElementById('watchAlertHigh').value) || 0;
+      const alertLow  = parseFloat(document.getElementById('watchAlertLow').value)  || 0;
+      WatchlistModule.add({ stockId, stockName, currentPrice: current, targetPrice: target, alertHigh, alertLow, memo });
+      ['watchSymbol','watchName','watchCurrent','watchTarget','watchAlertHigh','watchAlertLow','watchNote'].forEach(id => {
         document.getElementById(id).value = '';
       });
       closeModal('modalWatch');
@@ -501,7 +503,10 @@ const App = (() => {
     }
   }
 
-  // ─── Price refresh ────────────────────────────────────────────────────────
+  // ─── Price refresh + volume anomaly detection ─────────────────────────────
+
+  // volume history: { stockId: [{ time, volume }] }  (ring buffer, max 20 samples)
+  const _volHistory = {};
 
   async function refreshPrices() {
     if (!PriceModule.isConfigured()) {
@@ -538,22 +543,119 @@ const App = (() => {
         if (p && p.price) { WatchlistModule.updatePrice(w.id, p.price); updated++; }
       });
 
-      const now    = new Date();
+      // Volume anomaly detection (only during market hours)
+      if (PriceModule.isMarketOpen()) {
+        _checkVolumeAnomaly(prices);
+        _checkPriceAlerts(prices, watchlist);
+        _refreshTaiex();
+      }
+
+      const now     = new Date();
       const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-      const market = PriceModule.isMarketOpen() ? '盤中' : '盤後';
+      const market  = PriceModule.isMarketOpen() ? '盤中' : '盤後';
       _setPriceStatus(updated > 0
         ? `${market} · 已更新 ${updated} 檔 · ${timeStr}`
         : `無法取得股價資料 · ${timeStr}`);
 
-      if (updated > 0) {
-        NotificationModule.toast(`已更新 ${updated} 檔股價`);
-        _safeRender();
-      }
+      if (updated > 0) _safeRender();
     } catch {
       _setPriceStatus('股價更新失敗');
     } finally {
       if (btn) btn.classList.remove('spinning');
     }
+  }
+
+  function _checkVolumeAnomaly(prices) {
+    const now = Date.now();
+    Object.entries(prices).forEach(([id, p]) => {
+      if (!p.volume) return;
+      if (!_volHistory[id]) _volHistory[id] = [];
+      const hist = _volHistory[id];
+      hist.push({ time: now, volume: p.volume });
+      if (hist.length > 20) hist.shift();
+      if (hist.length < 3) return;
+
+      // delta = volume increment in last interval
+      const delta = hist[hist.length - 1].volume - hist[hist.length - 2].volume;
+      if (delta <= 0) return;
+
+      // average delta over earlier samples (exclude last 2)
+      const older = hist.slice(0, -2);
+      if (older.length < 2) return;
+      const deltas = [];
+      for (let i = 1; i < older.length; i++) {
+        const d = older[i].volume - older[i - 1].volume;
+        if (d > 0) deltas.push(d);
+      }
+      if (deltas.length === 0) return;
+      const avgDelta = deltas.reduce((s, d) => s + d, 0) / deltas.length;
+
+      if (delta >= avgDelta * 3) {
+        const pct  = Math.round(delta / avgDelta);
+        const name = p.name || id;
+        _notify(
+          `⚡ 異常成交量：${id} ${name}`,
+          `本次成交量是均量的 ${pct} 倍（${(delta/1000).toFixed(1)}千張）\n現價 $${p.price}，請留意進出場時機`
+        );
+      }
+    });
+  }
+
+  function _checkPriceAlerts(prices, watchlist) {
+    watchlist.forEach(w => {
+      const p = prices[w.stockId];
+      if (!p || !p.price) return;
+      if (w.alertHigh && p.price >= w.alertHigh) {
+        _notify(`📈 突破警示：${w.stockId} ${w.stockName}`, `現價 $${p.price} 突破警示上限 $${w.alertHigh}，考慮加碼或觀望`);
+      }
+      if (w.alertLow && p.price <= w.alertLow) {
+        _notify(`📉 跌破警示：${w.stockId} ${w.stockName}`, `現價 $${p.price} 跌破警示下限 $${w.alertLow}，考慮退場`);
+      }
+    });
+  }
+
+  // Throttle notifications: same stock same message → max once per 5 min
+  const _notifySent = {};
+  function _notify(title, body) {
+    const key = title;
+    const now = Date.now();
+    if (_notifySent[key] && now - _notifySent[key] < 5 * 60 * 1000) return;
+    _notifySent[key] = now;
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification(title, { body, icon: './icons/icon-192.png' });
+    } else {
+      NotificationModule.toast(title);
+    }
+  }
+
+  async function _refreshTaiex() {
+    try {
+      const url = (localStorage.getItem('aios_line_server_url') || '').trim().replace(/\/$/, '');
+      if (!url) return;
+      const r = await fetch(`${url}/api/taiex`, { signal: AbortSignal.timeout(5000) });
+      if (!r.ok) return;
+      const d = await r.json();
+      const bar = document.getElementById('taiexBar');
+      if (!bar || !d.price) return;
+      const cls   = d.change >= 0 ? 'positive' : 'negative';
+      const sign  = d.change >= 0 ? '+' : '';
+      bar.style.display = '';
+      bar.innerHTML = `<span style="color:var(--muted)">加權指數</span>
+        <strong style="margin:0 6px">${d.price.toLocaleString()}</strong>
+        <span class="${cls}">${sign}${d.change} (${sign}${d.changePct}%)</span>`;
+    } catch { /* server offline */ }
+  }
+
+  // Auto-refresh every 60s during market hours
+  function _startAutoRefresh() {
+    if (!PriceModule.isConfigured()) return;
+    // Request browser notification permission
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+    setInterval(() => {
+      if (PriceModule.isMarketOpen()) refreshPrices();
+    }, 60 * 1000);
   }
 
   function _setPriceStatus(text) {
@@ -914,6 +1016,9 @@ const App = (() => {
       const btn = document.getElementById('refreshPriceBtn');
       if (btn) btn.style.display = '';
     }
+
+    // Auto price refresh + volume monitoring during market hours
+    _startAutoRefresh();
 
     // LINE sync polling (every 15s, only if server is configured)
     _startLineSyncPoll();
