@@ -1115,11 +1115,13 @@ const App = (() => {
     }));
 
     // Compute demo financials from transactions
+    const totalBuyCost = txs.filter(t => t.type === 'buy').reduce((s, t) => s + Math.abs(t.total), 0);
+    const demoInitial  = Math.ceil((totalBuyCost + 500000) / 100000) * 100000; // buys + 50萬 buffer, round up to 10萬
     const demoCash = txs.reduce((s, t) => {
       if (t.type === 'buy')  return s - Math.abs(t.total);
       if (t.type === 'sell') return s + Math.abs(t.total);
       return s;
-    }, 2000000); // assume 200萬初始資金
+    }, demoInitial);
     const demoStockValue = holdings.reduce((s, h) => s + h.quantity * h.avgCost, 0);
     const demoTotal = demoCash + demoStockValue;
     const demoRealized = txs.filter(t => t.type === 'sell').reduce((s, t) => s + t.total, 0)
