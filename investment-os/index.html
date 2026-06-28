@@ -18,6 +18,34 @@
   </div>
 </noscript>
 
+<!-- ── DEMO BANNER ── -->
+<div id="demoBanner" style="display:none;background:#b45309;color:#fff;text-align:center;padding:8px 12px;font-size:13px;position:sticky;top:0;z-index:999;cursor:pointer" onclick="App.openLicenseModal()">
+  ⚠️ 體驗模式：資料為範例，無法儲存。<u>點此輸入授權碼啟用完整版</u>
+</div>
+
+<!-- ── LICENSE MODAL ── -->
+<div class="modal-overlay" id="modalLicense">
+  <div class="modal" style="max-width:360px">
+    <div class="modal-header">
+      <div class="modal-title">輸入授權碼</div>
+      <button class="modal-close" onclick="closeModal('modalLicense')">✕</button>
+    </div>
+    <div style="padding:20px 16px">
+      <div style="font-size:13px;color:var(--muted);margin-bottom:14px">
+        輸入您的永久授權碼（格式：XXXX-XXXX-XXXX-XXXX）以啟用完整版，解鎖個人資料建立與儲存功能。
+      </div>
+      <input id="licenseKeyInput" class="form-input" type="text" placeholder="XXXX-XXXX-XXXX-XXXX"
+        maxlength="19" style="text-transform:uppercase;letter-spacing:2px;text-align:center;font-size:15px"
+        oninput="this.value=this.value.toUpperCase().replace(/[^0-9A-F-]/g,'')">
+      <div id="licenseError" style="color:var(--red);font-size:12px;margin-top:6px;min-height:16px"></div>
+      <button class="btn btn-primary" style="width:100%;margin-top:14px" onclick="App.submitLicenseKey()">啟用授權</button>
+      <div style="font-size:11px;color:var(--muted);text-align:center;margin-top:10px">
+        需要授權碼？請聯絡開發者取得。
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ── PIN OVERLAY ── -->
 <div class="pin-overlay" id="pinOverlay" style="display:none">
   <div class="pin-box">
@@ -339,6 +367,7 @@
 <script src="js/security.js"></script>
 <script src="js/dashboard.js"></script>
 <script src="js/price.js"></script>
+<script src="js/license.js"></script>
 <script src="js/app.js"></script>
 
 <script>

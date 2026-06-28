@@ -47,6 +47,7 @@ const App = (() => {
 
   function _safeRender() {
     try {
+      if (!LicenseModule.isActivated()) { _renderDemoPage(); return; }
       _renderCurrentPage();
     } catch {
       NotificationModule.toast('畫面更新失敗，請稍後再試。');
@@ -104,7 +105,7 @@ const App = (() => {
     } else if (_page === 'history') {
       DashboardModule.renderHistory({ transactions: txs, dividends: TransactionModule.getAllDividends() });
     } else if (_page === 'settings') {
-      DashboardModule.renderSettings({ settings, pinEnabled: SecurityModule.isPINEnabled() });
+      DashboardModule.renderSettings({ settings, pinEnabled: SecurityModule.isPINEnabled(), licenseActivated: LicenseModule.isActivated(), licenseKey: LicenseModule.storedKey() });
     }
   }
 
@@ -119,6 +120,7 @@ const App = (() => {
   let _pendingTx = null; // staged transaction pending confirm
 
   function submitTransaction() {
+    if (!LicenseModule.isActivated()) { _promptLicense(); return; }
     try {
       const type = document.getElementById('txType').value;
       const date = document.getElementById('txDate').value;
@@ -309,6 +311,7 @@ const App = (() => {
   // ─── Watchlist actions ────────────────────────────────────────────────────
 
   function addWatch() {
+    if (!LicenseModule.isActivated()) { _promptLicense(); return; }
     try {
       const stockId   = document.getElementById('watchSymbol').value.trim().toUpperCase();
       const stockName = document.getElementById('watchName').value.trim();
@@ -688,6 +691,7 @@ const App = (() => {
   }
 
   function editSetting(key, label, current) {
+    if (!LicenseModule.isActivated()) { _promptLicense(); return; }
     const val = prompt(label, current);
     if (val === null || val.trim() === '') return;
     const s = getSettings();
@@ -702,7 +706,7 @@ const App = (() => {
       s[key] = key === 'defaultFeeRate' ? num : Math.round(num);
     }
     saveSettings(s);
-    DashboardModule.renderSettings({ settings: s, pinEnabled: SecurityModule.isPINEnabled() });
+    DashboardModule.renderSettings({ settings: s, pinEnabled: SecurityModule.isPINEnabled(), licenseActivated: LicenseModule.isActivated(), licenseKey: LicenseModule.storedKey() });
     NotificationModule.toast('已更新');
   }
 
@@ -802,6 +806,7 @@ const App = (() => {
   }
 
   function importData() {
+    if (!LicenseModule.isActivated()) { _promptLicense(); return; }
     const _doImport = () => {
       try {
         const input = document.createElement('input');
@@ -846,7 +851,7 @@ const App = (() => {
     SecurityModule.promptSetNew({
       onSuccess: () => {
         NotificationModule.toast('通關密碼已設定，下次開啟 App 將要求輸入');
-        DashboardModule.renderSettings({ settings: DB.Settings.get(), pinEnabled: SecurityModule.isPINEnabled() });
+        DashboardModule.renderSettings({ settings: DB.Settings.get(), pinEnabled: SecurityModule.isPINEnabled(), licenseActivated: LicenseModule.isActivated(), licenseKey: LicenseModule.storedKey() });
         SecurityModule.log('setupPIN');
       },
     });
@@ -859,7 +864,7 @@ const App = (() => {
         SecurityModule.promptSetNew({
           onSuccess: () => {
             NotificationModule.toast('通關密碼已更新');
-            DashboardModule.renderSettings({ settings: DB.Settings.get(), pinEnabled: SecurityModule.isPINEnabled() });
+            DashboardModule.renderSettings({ settings: DB.Settings.get(), pinEnabled: SecurityModule.isPINEnabled(), licenseActivated: LicenseModule.isActivated(), licenseKey: LicenseModule.storedKey() });
           },
         });
       },
@@ -872,12 +877,13 @@ const App = (() => {
       onSuccess: () => {
         SecurityModule.disablePIN();
         NotificationModule.toast('密碼保護已關閉');
-        DashboardModule.renderSettings({ settings: DB.Settings.get(), pinEnabled: SecurityModule.isPINEnabled() });
+        DashboardModule.renderSettings({ settings: DB.Settings.get(), pinEnabled: SecurityModule.isPINEnabled(), licenseActivated: LicenseModule.isActivated(), licenseKey: LicenseModule.storedKey() });
       },
     });
   }
 
   function clearAllData() {
+    if (!LicenseModule.isActivated()) { _promptLicense(); return; }
     const _doDelete = () => {
       if (!confirm('確定要清除所有資料？此操作無法復原。')) return;
       try {
@@ -1039,6 +1045,12 @@ const App = (() => {
       return;
     }
 
+    // License / Demo mode
+    if (!LicenseModule.isActivated()) {
+      _enterDemoMode();
+      return;
+    }
+
     if (!DB.get('ready', false)) {
       document.getElementById('onboarding').classList.add('show');
     } else if (SecurityModule.isPINEnabled()) {
@@ -1049,6 +1061,69 @@ const App = (() => {
       });
     } else {
       _safeRender();
+    }
+  }
+
+  // ─── License / Demo Mode ─────────────────────────────────────────────────
+
+  function _promptLicense() {
+    NotificationModule.toast('體驗模式：請先輸入授權碼啟用完整版');
+    openLicenseModal();
+  }
+
+  function openLicenseModal() {
+    document.getElementById('licenseError').textContent = '';
+    document.getElementById('licenseKeyInput').value = '';
+    openModal('modalLicense');
+  }
+
+  function submitLicenseKey() {
+    const key = document.getElementById('licenseKeyInput').value.trim();
+    if (LicenseModule.activate(key)) {
+      closeModal('modalLicense');
+      NotificationModule.toast('授權成功！歡迎使用完整版');
+      // Exit demo mode: reload to start fresh with real data
+      setTimeout(() => location.reload(), 800);
+    } else {
+      document.getElementById('licenseError').textContent = '授權碼無效，請確認後重新輸入';
+    }
+  }
+
+  function _enterDemoMode() {
+    const banner = document.getElementById('demoBanner');
+    if (banner) banner.style.display = '';
+    _renderDemoPage();
+  }
+
+  function _renderDemoPage() {
+    const txs      = LicenseModule.DEMO_TRANSACTIONS;
+    const watchlist = LicenseModule.DEMO_WATCHLIST;
+    const settings = getSettings();
+
+    // Compute simple demo holdings (buy - sell)
+    const holdMap = {};
+    txs.filter(t => t.type === 'buy' || t.type === 'sell').forEach(t => {
+      if (!holdMap[t.stockId]) holdMap[t.stockId] = { stockId: t.stockId, stockName: t.stockName, quantity: 0, cost: 0 };
+      const sign = t.type === 'buy' ? 1 : -1;
+      holdMap[t.stockId].quantity += sign * t.quantity;
+      holdMap[t.stockId].cost     += sign * t.quantity * t.price;
+    });
+    const holdings = Object.values(holdMap).filter(h => h.quantity > 0).map(h => ({
+      ...h,
+      avgCost:      h.cost / h.quantity,
+      currentPrice: null,
+    }));
+
+    if (_page === 'home' || !_page) {
+      DashboardModule.renderHome({ aiResult: null, holdings, watchlist, cash: 0, totalAssets: 0, settings, todayPnL: 0, cumulativePnL: 0, healthResult: null });
+    } else if (_page === 'portfolio') {
+      DashboardModule.renderPortfolio({ holdings, watchlist, transactions: txs, cash: 0, unrealized: 0, unrealPct: 0, realized: 0, totalAssets: 0, todayPnL: 0, thesisMap: {}, dividendTotal: 0, xirr: null });
+    } else if (_page === 'watchlist') {
+      DashboardModule.renderWatchlist({ watchlist });
+    } else if (_page === 'history') {
+      DashboardModule.renderHistory({ transactions: txs, dividends: [] });
+    } else if (_page === 'settings') {
+      DashboardModule.renderSettings({ settings, pinEnabled: false, licenseActivated: false, licenseKey: '' });
     }
   }
 
@@ -1252,6 +1327,8 @@ const App = (() => {
     saveLineServerUrl,
     refreshPrices,
     installPWA,
+    openLicenseModal,
+    submitLicenseKey,
   };
 })();
 

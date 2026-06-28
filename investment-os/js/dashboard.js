@@ -449,7 +449,7 @@ const DashboardModule = (() => {
 
   // ── Settings ──────────────────────────────────────────────────────────────
 
-  function renderSettings({ settings, pinEnabled = false }) {
+  function renderSettings({ settings, pinEnabled = false, licenseActivated = false, licenseKey = '' }) {
     const isDark = settings.darkMode !== false; // default dark
     document.getElementById('settingsView').innerHTML = `
       <div class="card">
@@ -510,6 +510,23 @@ const DashboardModule = (() => {
         </div>` : `
         <div style="font-size:12px;color:var(--muted);margin-top:6px">
           設定 4 位數密碼，每次開啟 App 需驗證身份
+        </div>`}
+      </div>
+
+      <div class="card">
+        <div class="card-title">授權狀態</div>
+        <div class="setting-row">
+          <span class="setting-label">版本授權</span>
+          ${licenseActivated ? `
+            <span style="font-size:13px;color:var(--green);font-weight:600">✓ 已授權</span>` : `
+            <span style="font-size:13px;color:var(--red);cursor:pointer;font-weight:600" onclick="App.openLicenseModal()">體驗模式 → 輸入授權碼</span>`}
+        </div>
+        ${licenseActivated ? `
+        <div style="font-size:11px;color:var(--muted);margin-top:6px;word-break:break-all">
+          ${licenseKey}
+        </div>` : `
+        <div style="font-size:12px;color:var(--muted);margin-top:6px">
+          未授權僅可體驗範例資料，無法建立與儲存個人交易紀錄
         </div>`}
       </div>
 
