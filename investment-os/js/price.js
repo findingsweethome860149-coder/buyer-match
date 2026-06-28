@@ -1,89 +1,124 @@
 /**
- * Price Module — Yahoo Finance stock price fetching via server proxy.
+ * Price Module — TWSE direct browser fetch + server proxy fallback.
  * Read-only. Never writes to any data store.
- * All writes (updateCurrentPrice, updatePrice) happen in app.js.
  */
 const PriceModule = (() => {
-  const CACHE_TTL_MS        = 5 * 60 * 1000; // 5-minute client-side cache
-  const SERVER_URL_KEY      = 'aios_line_server_url';
-  const MARKET_OPEN_H       = 9;
-  const MARKET_OPEN_M       = 0;
-  const MARKET_CLOSE_H      = 13;
-  const MARKET_CLOSE_M      = 30;
+  const CACHE_TTL_MS   = 90 * 1000; // 90-second client-side cache
+  const SERVER_URL_KEY = 'aios_line_server_url';
+  const MARKET_OPEN_H  = 9,  MARKET_OPEN_M  = 0;
+  const MARKET_CLOSE_H = 13, MARKET_CLOSE_M = 30;
 
-  const _cache = {}; // { stockId: { price, change, changePct, name, fetchedAt } }
+  // TWSE Open API (bulk, no proxy needed, browser-friendly)
+  const TWSE_OPEN_URL = 'https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_AVG_ALL';
+  let _twseOpenCache = null, _twseOpenAt = 0;
+  const TWSE_OPEN_TTL = 3 * 60 * 1000;
 
-  // ── Public API ────────────────────────────────────────────────────────────
+  const _cache = {};
 
-  /**
-   * Fetch prices for an array of Taiwan stock IDs.
-   * Returns { stockId: { price, change, changePct, name } } for found stocks.
-   * Requires the LINE/price server to be configured in localStorage.
-   */
+  // ── Public API ──────────────────────────────────────────────────────────────
+
   async function fetchPrices(stockIds) {
     if (!stockIds || stockIds.length === 0) return {};
 
-    const serverUrl = _serverUrl();
-    if (!serverUrl) return null; // null = server not configured
-
-    const now     = Date.now();
-    const result  = {};
-    const toFetch = [];
-
-    stockIds.forEach(id => {
+    const now    = Date.now();
+    const result = {};
+    const toFetch = stockIds.filter(id => {
       const c = _cache[id];
-      if (c && now - c.fetchedAt < CACHE_TTL_MS) {
-        result[id] = c;
-      } else {
-        toFetch.push(id);
-      }
+      if (c && now - c.fetchedAt < CACHE_TTL_MS) { result[id] = c; return false; }
+      return true;
     });
 
     if (toFetch.length === 0) return result;
 
-    try {
-      const resp = await fetch(
-        `${serverUrl}/api/price?stocks=${toFetch.join(',')}`,
-        { signal: AbortSignal.timeout(10000) }
-      );
-      if (!resp.ok) return result;
-
-      const { prices } = await resp.json();
-      Object.entries(prices || {}).forEach(([id, data]) => {
-        _cache[id] = { ...data, fetchedAt: now };
-        result[id] = _cache[id];
-      });
-    } catch {
-      // Server unreachable — return what we have from cache
+    const serverUrl = _serverUrl();
+    if (serverUrl) {
+      // Use server proxy (returns real-time MIS data with volume)
+      await _fetchViaServer(serverUrl, toFetch, result, now);
+    } else {
+      // Direct browser call to TWSE Open API (no server needed)
+      await _fetchViaTWSE(toFetch, result, now);
     }
 
     return result;
   }
 
-  /** Returns true if Taiwan market is currently open (weekdays 09:00–13:30 CST) */
+  async function fetchTaiex() {
+    const serverUrl = _serverUrl();
+    if (serverUrl) {
+      try {
+        const r = await fetch(`${serverUrl}/api/taiex`, { signal: AbortSignal.timeout(5000) });
+        if (r.ok) return await r.json();
+      } catch { /* fall through */ }
+    }
+    // Direct TWSE MIS for TAIEX
+    try {
+      const r = await fetch(
+        'https://mis.twse.com.tw/stock/api/getStockInfo.jsp?ex_ch=tse_t00.tw&json=1&delay=0',
+        { signal: AbortSignal.timeout(8000) }
+      );
+      if (!r.ok) return null;
+      const body = await r.json();
+      const row  = (body?.msgArray || [])[0];
+      if (!row) return null;
+      const price = parseFloat(row.z !== '-' ? row.z : row.y);
+      const prev  = parseFloat(row.y) || price;
+      return { price, change: +(price - prev).toFixed(2), changePct: +((price - prev) / prev * 100).toFixed(2) };
+    } catch { return null; }
+  }
+
   function isMarketOpen() {
-    // Use Asia/Taipei offset (UTC+8)
-    const now   = new Date(Date.now() + 8 * 3600 * 1000);
-    const day   = now.getUTCDay(); // 0=Sun, 6=Sat
+    const now  = new Date(Date.now() + 8 * 3600 * 1000);
+    const day  = now.getUTCDay();
     if (day === 0 || day === 6) return false;
-    const h = now.getUTCHours();
-    const m = now.getUTCMinutes();
-    const mins = h * 60 + m;
-    const open  = MARKET_OPEN_H  * 60 + MARKET_OPEN_M;
-    const close = MARKET_CLOSE_H * 60 + MARKET_CLOSE_M;
-    return mins >= open && mins <= close;
+    const mins = now.getUTCHours() * 60 + now.getUTCMinutes();
+    return mins >= MARKET_OPEN_H * 60 + MARKET_OPEN_M && mins <= MARKET_CLOSE_H * 60 + MARKET_CLOSE_M;
   }
 
-  /** Returns true if server URL is configured */
-  function isConfigured() {
-    return !!_serverUrl();
+  function isConfigured() { return !!_serverUrl(); }
+
+  // ── Private ─────────────────────────────────────────────────────────────────
+
+  async function _fetchViaServer(serverUrl, ids, out, now) {
+    try {
+      const resp = await fetch(`${serverUrl}/api/price?stocks=${ids.join(',')}`, { signal: AbortSignal.timeout(10000) });
+      if (!resp.ok) return;
+      const { prices } = await resp.json();
+      Object.entries(prices || {}).forEach(([id, data]) => {
+        _cache[id] = { ...data, fetchedAt: now };
+        out[id]    = _cache[id];
+      });
+    } catch { /* server unreachable */ }
   }
 
-  // ── Private ───────────────────────────────────────────────────────────────
+  async function _fetchViaTWSE(ids, out, now) {
+    try {
+      // Bulk download all TSE stocks (CORS-enabled open data)
+      if (!_twseOpenCache || now - _twseOpenAt > TWSE_OPEN_TTL) {
+        const r = await fetch(TWSE_OPEN_URL, { signal: AbortSignal.timeout(12000) });
+        if (!r.ok) return;
+        const list = await r.json();
+        _twseOpenCache = new Map();
+        list.forEach(row => {
+          const price = parseFloat(row.ClosingPrice);
+          if (row.Code && !isNaN(price)) {
+            _twseOpenCache.set(row.Code, { price, name: row.Name || row.Code });
+          }
+        });
+        _twseOpenAt = now;
+      }
+      ids.forEach(id => {
+        const d = _twseOpenCache.get(id);
+        if (d) {
+          _cache[id] = { ...d, change: null, changePct: null, volume: null, source: 'twse-open', fetchedAt: now };
+          out[id]    = _cache[id];
+        }
+      });
+    } catch { /* CORS blocked or API down */ }
+  }
 
   function _serverUrl() {
     return (localStorage.getItem(SERVER_URL_KEY) || '').trim().replace(/\/$/, '') || null;
   }
 
-  return { fetchPrices, isMarketOpen, isConfigured };
+  return { fetchPrices, fetchTaiex, isMarketOpen, isConfigured };
 })();

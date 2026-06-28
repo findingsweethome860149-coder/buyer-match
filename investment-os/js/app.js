@@ -509,10 +509,6 @@ const App = (() => {
   const _volHistory = {};
 
   async function refreshPrices() {
-    if (!PriceModule.isConfigured()) {
-      NotificationModule.toast('請先在設定頁面輸入伺服器網址以啟用自動股價更新');
-      return;
-    }
 
     const btn = document.getElementById('refreshPriceBtn');
     if (btn) btn.classList.add('spinning');
@@ -527,9 +523,8 @@ const App = (() => {
       ])];
 
       const prices = await PriceModule.fetchPrices(allIds);
-      if (!prices) {
-        _setPriceStatus('');
-        NotificationModule.toast('請先在設定頁面輸入伺服器網址');
+      if (!prices || Object.keys(prices).length === 0) {
+        _setPriceStatus('無法取得股價，請確認網路連線');
         return;
       }
 
@@ -630,32 +625,28 @@ const App = (() => {
 
   async function _refreshTaiex() {
     try {
-      const url = (localStorage.getItem('aios_line_server_url') || '').trim().replace(/\/$/, '');
-      if (!url) return;
-      const r = await fetch(`${url}/api/taiex`, { signal: AbortSignal.timeout(5000) });
-      if (!r.ok) return;
-      const d = await r.json();
+      const d   = await PriceModule.fetchTaiex();
       const bar = document.getElementById('taiexBar');
-      if (!bar || !d.price) return;
-      const cls   = d.change >= 0 ? 'positive' : 'negative';
-      const sign  = d.change >= 0 ? '+' : '';
+      if (!bar || !d || !d.price) return;
+      const cls  = d.change >= 0 ? 'positive' : 'negative';
+      const sign = d.change >= 0 ? '+' : '';
       bar.style.display = '';
       bar.innerHTML = `<span style="color:var(--muted)">加權指數</span>
         <strong style="margin:0 6px">${d.price.toLocaleString()}</strong>
         <span class="${cls}">${sign}${d.change} (${sign}${d.changePct}%)</span>`;
-    } catch { /* server offline */ }
+    } catch { /* API unavailable */ }
   }
 
-  // Auto-refresh every 60s during market hours
+  // Auto-refresh every 60s during market hours (works with or without server)
   function _startAutoRefresh() {
-    if (!PriceModule.isConfigured()) return;
-    // Request browser notification permission
     if ('Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission();
     }
     setInterval(() => {
       if (PriceModule.isMarketOpen()) refreshPrices();
     }, 60 * 1000);
+    // Also refresh TAIEX on start if market open
+    if (PriceModule.isMarketOpen()) _refreshTaiex();
   }
 
   function _setPriceStatus(text) {
@@ -1011,11 +1002,9 @@ const App = (() => {
       NotificationModule.toast('發生錯誤，請重新整理頁面。資料已自動保存。');
     });
 
-    // Show price refresh button if server is configured
-    if (PriceModule.isConfigured()) {
-      const btn = document.getElementById('refreshPriceBtn');
-      if (btn) btn.style.display = '';
-    }
+    // Always show price refresh button
+    const btn = document.getElementById('refreshPriceBtn');
+    if (btn) btn.style.display = '';
 
     // Auto price refresh + volume monitoring during market hours
     _startAutoRefresh();
