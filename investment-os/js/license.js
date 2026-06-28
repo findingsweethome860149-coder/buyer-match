@@ -52,6 +52,7 @@ const LicenseModule = (() => {
 
   // ── Demo data ────────────────────────────────────────────────────────────
   const DEMO_TRANSACTIONS = [
+    { id: 'demo-0', type: 'deposit', date: '2025-01-01', cashAmt: 2000000, total: 2000000, memo: '初始資金' },
     { id: 'demo-1', type: 'buy',  date: '2025-01-15', stockId: '2330', stockName: '台積電',  quantity: 1000, price: 850,  fee: 1020, tax: 0,    total: -851020, thesis: 'AI 需求持續強勁，長期持有', memo: '' },
     { id: 'demo-2', type: 'buy',  date: '2025-03-10', stockId: '2454', stockName: '聯發科',  quantity: 500,  price: 1200, fee: 906,  tax: 0,    total: -600906, thesis: '5G 晶片出貨成長', memo: '' },
     { id: 'demo-3', type: 'sell', date: '2025-05-20', stockId: '2330', stockName: '台積電',  quantity: 200,  price: 960,  fee: 289,  tax: 576,  total: 191135,  thesis: '獲利了結部分持股', memo: '' },
