@@ -451,7 +451,7 @@ body {
       <button class="booking-confirm" id="bookBtn" disabled onclick="sendBooking()">
         💬 傳送預約訊息到 LINE
       </button>
-      <div class="booking-note">確認後將開啟 LINE，預約訊息自動帶入，家綸會盡快回覆</div>
+      <div class="booking-note">確認後將開啟 LINE，訊息已自動填入，按送出即可完成預約</div>
     </div>
   </div>
 
@@ -614,10 +614,10 @@ function updateBtn() {
 
 function sendBooking() {
   const msg = `您好，我是從行動名片看到家綸的服務，想預約 ${selDate} ${selTime} 的免費房屋諮詢，請問方便嗎？`;
-  if (navigator.clipboard) navigator.clipboard.writeText(msg).catch(() => {});
   const btn = document.getElementById('bookBtn');
-  btn.innerHTML = '✅ 訊息已複製，正在開啟 LINE…';
-  setTimeout(() => { window.open('https://line.me/ti/p/~@898jvoyx', '_blank'); }, 400);
+  btn.innerHTML = '✅ 正在開啟 LINE…';
+  const url = 'https://line.me/R/oaMessage/@898jvoyx/?' + encodeURIComponent(msg);
+  setTimeout(() => { window.open(url, '_blank'); }, 300);
   setTimeout(() => updateBtn(), 2500);
 }
 
