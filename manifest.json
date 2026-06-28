@@ -16,5 +16,18 @@
       "sizes": "512x512",
       "type": "image/png"
     }
+  ],
+  "shortcuts": [
+    {
+      "name": "查看物件資訊",
+      "short_name": "物件",
+      "url": "https://www.findingsweethomekh.com/property_info/",
+      "icons": [
+        {
+          "src": "./icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
   ]
 }
