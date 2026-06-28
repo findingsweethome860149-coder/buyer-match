@@ -49,101 +49,12 @@
 
 <!-- ── ONBOARDING ── -->
 <div id="onboarding">
-  <div class="onboard-dots">
-    <div class="onboard-dot active" id="od0"></div>
-    <div class="onboard-dot" id="od1"></div>
-    <div class="onboard-dot" id="od2"></div>
-    <div class="onboard-dot" id="od3"></div>
-  </div>
-
-  <!-- Step 0: Welcome -->
   <div class="onboard-step active" id="os0">
     <div class="onboard-num">歡迎使用</div>
-    <div class="onboard-title">每天 3 分鐘<br>建立投資紀律</div>
+    <div class="onboard-title">股市監控<br>進出場分析</div>
     <div class="onboard-desc">
-      AI Investment OS Lite 是一位陪跑教練。<br>
-      不報明牌，不替你下決定。<br>
-      只陪你建立屬於自己的投資紀律，<br>
-      慢慢累積第一桶金。
-    </div>
-    <button class="btn btn-primary" onclick="App.nextOnboard()">開始設定</button>
-  </div>
-
-  <!-- Step 1: Investment Goal -->
-  <div class="onboard-step" id="os1">
-    <div class="onboard-num">Step 1 / 3</div>
-    <div class="onboard-title">你的投資目標<br>是什麼？</div>
-    <div class="onboard-desc">選擇一個目標，幫助我陪伴你更有方向地前進。</div>
-    <div class="goal-grid" id="goalGrid">
-      <button class="goal-btn" data-goal="第一桶金" onclick="App.selectGoal(this)">
-        <span class="goal-icon">🪙</span>
-        <span>第一桶金</span>
-      </button>
-      <button class="goal-btn" data-goal="買房基金" onclick="App.selectGoal(this)">
-        <span class="goal-icon">🏠</span>
-        <span>買房基金</span>
-      </button>
-      <button class="goal-btn" data-goal="子女教育基金" onclick="App.selectGoal(this)">
-        <span class="goal-icon">🎓</span>
-        <span>子女教育基金</span>
-      </button>
-      <button class="goal-btn" data-goal="財務自由" onclick="App.selectGoal(this)">
-        <span class="goal-icon">🕊️</span>
-        <span>財務自由</span>
-      </button>
-      <button class="goal-btn" data-goal="退休準備" onclick="App.selectGoal(this)">
-        <span class="goal-icon">🌴</span>
-        <span>退休準備</span>
-      </button>
-      <button class="goal-btn" data-goal="自訂目標" onclick="App.selectGoal(this)">
-        <span class="goal-icon">✏️</span>
-        <span>自訂目標</span>
-      </button>
-    </div>
-    <div class="form-group" id="customGoalWrap" style="display:none;margin-top:12px">
-      <input class="form-input" id="ob_customGoal" placeholder="輸入你的投資目標">
-    </div>
-    <button class="btn btn-primary" style="margin-top:16px" onclick="App.nextOnboard()">下一步</button>
-  </div>
-
-  <!-- Step 2: Budget & Settings -->
-  <div class="onboard-step" id="os2">
-    <div class="onboard-num">Step 2 / 3</div>
-    <div class="onboard-title">設定投資計畫</div>
-    <div class="onboard-desc">告訴我你的投資節奏，我才能給你最適合的提醒。</div>
-    <div class="form-group">
-      <label class="form-label">每月可投入金額（元）</label>
-      <input class="form-input" id="ob_budget" type="number" placeholder="例：10000" min="1">
-    </div>
-    <div class="form-group">
-      <label class="form-label">每月定期投入提醒日</label>
-      <select class="form-input" id="ob_day">
-        <option value="1">每月 1 日</option>
-        <option value="5" selected>每月 5 日</option>
-        <option value="10">每月 10 日</option>
-        <option value="15">每月 15 日</option>
-        <option value="20">每月 20 日</option>
-      </select>
-    </div>
-    <div class="form-group">
-      <label class="form-label">預設手續費率（%）</label>
-      <input class="form-input" id="ob_fee" type="number" placeholder="0.1425" step="0.0001" value="0.1425" min="0">
-      <div class="form-hint">台灣券商一般 0.1425%，折扣後約 0.07%</div>
-    </div>
-    <button class="btn btn-primary" onclick="App.nextOnboard()">下一步</button>
-  </div>
-
-  <!-- Step 3: Ready -->
-  <div class="onboard-step" id="os3">
-    <div class="onboard-num">Step 3 / 3</div>
-    <div class="onboard-title">準備好了 🎉</div>
-    <div class="onboard-desc" id="ob_ready_desc">
-      接下來你可以：<br><br>
-      ① 加入想追蹤的股票到觀察清單<br>
-      ② 入金並新增第一筆買入交易<br>
-      ③ 每天查看 Dashboard<br><br>
-      記住：每一筆交易都值得記錄原因。<br>
-      這是建立投資紀律最重要的一步。
+      記錄你的進場、監控即時股價與大盤。<br>
+      設定警示價格，跌破通知退場，突破通知加碼。
     </div>
     <button class="btn btn-primary" onclick="App.finishOnboard()">開始使用</button>
   </div>
@@ -152,7 +63,7 @@
 <!-- ── HEADER ── -->
 <div class="header">
   <div>
-    <h1><span class="logo-dot"></span>Investment OS</h1>
+    <h1><span class="logo-dot"></span>Stock Monitor</h1>
     <div class="date" id="headerDate"></div>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
@@ -164,6 +75,7 @@
     <span class="ai-badge">✦ AI</span>
   </div>
 </div>
+<div id="taiexBar" style="display:none;font-size:12px;text-align:center;padding:5px 0;background:var(--surface);border-bottom:1px solid var(--border)"></div>
 <div id="priceStatusBar" style="display:none;font-size:11px;color:var(--muted);text-align:center;padding:4px 0;background:var(--surface)"></div>
 
 <!-- ── PAGES ── -->
@@ -237,8 +149,6 @@
       <select class="form-input" id="txType">
         <option value="buy">買入</option>
         <option value="sell">賣出</option>
-        <option value="deposit">入金</option>
-        <option value="withdraw">出金</option>
         <option value="dividend">現金股利</option>
         <option value="stock_dividend">股票股利</option>
       </select>
@@ -286,12 +196,6 @@
           <input class="form-input" id="txDivShares" type="number" placeholder="例：10.5" min="0.001" step="any">
           <div class="form-hint">配發股數將以成本 $0 加入持股（FIFO）</div>
         </div>
-      </div>
-    </div>
-    <div id="txCashFields" style="display:none">
-      <div class="form-group">
-        <label class="form-label">金額（元）</label>
-        <input class="form-input" id="txCashAmt" type="number" placeholder="例：50000" min="1">
       </div>
     </div>
     <div class="form-group">
@@ -351,8 +255,18 @@
         <input class="form-input" id="watchTarget" type="number" placeholder="例：850" step="0.01" min="0">
       </div>
     </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">警示上限（突破通知加碼）</label>
+        <input class="form-input" id="watchAlertHigh" type="number" placeholder="例：950" step="0.01" min="0">
+      </div>
+      <div class="form-group">
+        <label class="form-label">警示下限（跌破通知退場）</label>
+        <input class="form-input" id="watchAlertLow" type="number" placeholder="例：800" step="0.01" min="0">
+      </div>
+    </div>
     <div class="form-group">
-      <label class="form-label">加入觀察的理由（選填）</label>
+      <label class="form-label">備註（選填）</label>
       <input class="form-input" id="watchNote" placeholder="例：等待回調再買、追蹤基本面">
     </div>
     <button class="btn btn-primary" onclick="App.addWatch()">加入觀察</button>

@@ -124,6 +124,36 @@ app.post('/api/sync/ack', (req, res) => {
   res.json({ ok: true });
 });
 
+// ── TAIEX Weighted Index ──────────────────────────────────────────────────
+let _taiexCache = null, _taiexFetchedAt = 0;
+const TAIEX_TTL = 60 * 1000;
+
+app.get('/api/taiex', async (req, res) => {
+  const now = Date.now();
+  if (_taiexCache && now - _taiexFetchedAt < TAIEX_TTL) return res.json(_taiexCache);
+  try {
+    const resp = await fetch(
+      'https://mis.twse.com.tw/stock/api/getStockInfo.jsp?ex_ch=tse_t00.tw&json=1&delay=0',
+      { headers: { 'User-Agent': 'Mozilla/5.0', 'Referer': 'https://mis.twse.com.tw/' }, signal: AbortSignal.timeout(8000) }
+    );
+    if (!resp.ok) throw new Error('unavailable');
+    const body = await resp.json();
+    const row  = (body?.msgArray || [])[0];
+    if (!row) throw new Error('no data');
+    const price = parseFloat(row.z !== '-' ? row.z : row.y);
+    const prev  = parseFloat(row.y) || price;
+    _taiexCache = {
+      price, prev,
+      change:    parseFloat((price - prev).toFixed(2)),
+      changePct: parseFloat(((price - prev) / prev * 100).toFixed(2)),
+      name: '加權指數',
+      updatedAt: new Date().toISOString(),
+    };
+    _taiexFetchedAt = now;
+    res.json(_taiexCache);
+  } catch { res.status(503).json({ error: 'taiex unavailable' }); }
+});
+
 /** GET /health */
 app.get('/health', (req, res) => res.json({
   ok: true,
