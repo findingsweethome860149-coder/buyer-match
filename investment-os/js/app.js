@@ -1009,6 +1009,27 @@ const App = (() => {
     // Auto price refresh + volume monitoring during market hours
     _startAutoRefresh();
 
+    // Load stock list for code↔name auto-fill
+    PriceModule.loadStockList();
+
+    // Auto-fill: code field → name field on Enter
+    [['txSymbol','txName'], ['watchSymbol','watchName']].forEach(([codeId, nameId]) => {
+      const codeEl = document.getElementById(codeId);
+      const nameEl = document.getElementById(nameId);
+      if (codeEl && nameEl) {
+        codeEl.addEventListener('keydown', e => {
+          if (e.key !== 'Enter') return;
+          const name = PriceModule.lookupByCode(codeEl.value.trim());
+          if (name) { nameEl.value = name; nameEl.focus(); }
+        });
+        nameEl.addEventListener('keydown', e => {
+          if (e.key !== 'Enter') return;
+          const code = PriceModule.lookupByName(nameEl.value.trim());
+          if (code) { codeEl.value = code; codeEl.focus(); }
+        });
+      }
+    });
+
     // LINE sync polling (every 15s, only if server is configured)
     _startLineSyncPoll();
 

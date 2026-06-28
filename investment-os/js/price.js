@@ -15,6 +15,45 @@ const PriceModule = (() => {
 
   const _cache = {};
 
+  // ── Stock lookup (code ↔ name) ──────────────────────────────────────────────
+
+  // Returns { code→name } and { name→code } maps, loaded once per session
+  let _stockMap = null; // Map: code → name
+  let _nameMap  = null; // Map: name → code (first match)
+
+  async function loadStockList() {
+    if (_stockMap) return;
+    try {
+      const r = await fetch(TWSE_OPEN_URL, { signal: AbortSignal.timeout(12000) });
+      if (!r.ok) return;
+      const list = await r.json();
+      _stockMap = new Map();
+      _nameMap  = new Map();
+      list.forEach(row => {
+        if (row.Code && row.Name) {
+          _stockMap.set(row.Code, row.Name);
+          if (!_nameMap.has(row.Name)) _nameMap.set(row.Name, row.Code);
+        }
+      });
+    } catch { /* offline or CORS */ }
+  }
+
+  function lookupByCode(code) {
+    return _stockMap ? (_stockMap.get(code.toUpperCase()) || null) : null;
+  }
+
+  function lookupByName(name) {
+    if (!_nameMap) return null;
+    const q = name.trim();
+    // exact match first
+    if (_nameMap.has(q)) return _nameMap.get(q);
+    // partial match
+    for (const [n, code] of _nameMap) {
+      if (n.includes(q) || q.includes(n)) return code;
+    }
+    return null;
+  }
+
   // ── Public API ──────────────────────────────────────────────────────────────
 
   async function fetchPrices(stockIds) {
@@ -120,5 +159,5 @@ const PriceModule = (() => {
     return (localStorage.getItem(SERVER_URL_KEY) || '').trim().replace(/\/$/, '') || null;
   }
 
-  return { fetchPrices, fetchTaiex, isMarketOpen, isConfigured };
+  return { fetchPrices, fetchTaiex, isMarketOpen, isConfigured, loadStockList, lookupByCode, lookupByName };
 })();
