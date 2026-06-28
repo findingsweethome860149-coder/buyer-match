@@ -1,7 +1,7 @@
 {
-  "name": "AI Investment OS Lite",
-  "short_name": "Investment OS",
-  "description": "陪伴小資族建立投資紀律的 AI 陪跑教練",
+  "name": "Stock Monitor 股市監控",
+  "short_name": "股市監控",
+  "description": "即時監控台股股價、成交量、大盤指數，設定警示價格自動通知",
   "start_url": "./index.html",
   "display": "standalone",
   "orientation": "portrait",
@@ -22,6 +22,5 @@
       "purpose": "any maskable"
     }
   ],
-  "categories": ["finance", "productivity"],
-  "screenshots": []
+  "categories": ["finance", "productivity"]
 }

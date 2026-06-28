@@ -2,7 +2,7 @@
  * Service Worker — AI Investment OS Lite
  * Cache-first for static assets; network-first for API calls.
  */
-const CACHE_NAME = 'aios-v1.1';
+const CACHE_NAME = 'stock-monitor-v1.3';
 
 const STATIC_ASSETS = [
   './',

@@ -1251,5 +1251,28 @@ const App = (() => {
     onThesisChange,
     saveLineServerUrl,
     refreshPrices,
+    installPWA,
   };
 })();
+
+// ── PWA Install prompt ──────────────────────────────────────────────────────
+let _pwaPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  _pwaPrompt = e;
+  const btn = document.getElementById('installBtn');
+  if (btn) btn.style.display = '';
+});
+window.addEventListener('appinstalled', () => {
+  const btn = document.getElementById('installBtn');
+  if (btn) btn.style.display = 'none';
+  _pwaPrompt = null;
+});
+function installPWA() {
+  if (_pwaPrompt) {
+    _pwaPrompt.prompt();
+    _pwaPrompt.userChoice.then(() => { _pwaPrompt = null; });
+  } else {
+    NotificationModule.toast('請在瀏覽器選單中選擇「加入主畫面」');
+  }
+}
