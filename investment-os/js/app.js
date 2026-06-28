@@ -1114,10 +1114,21 @@ const App = (() => {
       currentPrice: null,
     }));
 
+    // Compute demo financials from transactions
+    const demoCash = txs.reduce((s, t) => {
+      if (t.type === 'buy')  return s - Math.abs(t.total);
+      if (t.type === 'sell') return s + Math.abs(t.total);
+      return s;
+    }, 2000000); // assume 200萬初始資金
+    const demoStockValue = holdings.reduce((s, h) => s + h.quantity * h.avgCost, 0);
+    const demoTotal = demoCash + demoStockValue;
+    const demoRealized = txs.filter(t => t.type === 'sell').reduce((s, t) => s + t.total, 0)
+                       - txs.filter(t => t.type === 'sell').reduce((s, t) => s + t.quantity * txs.find(b => b.stockId === t.stockId && b.type === 'buy')?.price * 1 || 0, 0);
+
     if (_page === 'home' || !_page) {
-      DashboardModule.renderHome({ aiResult: null, holdings, watchlist, cash: 0, totalAssets: 0, settings, todayPnL: 0, cumulativePnL: 0, healthResult: null });
+      DashboardModule.renderHome({ aiResult: null, holdings, watchlist, cash: demoCash, totalAssets: demoTotal, settings, todayPnL: 0, cumulativePnL: 0, healthResult: null });
     } else if (_page === 'portfolio') {
-      DashboardModule.renderPortfolio({ holdings, watchlist, transactions: txs, cash: 0, unrealized: 0, unrealPct: 0, realized: 0, totalAssets: 0, todayPnL: 0, thesisMap: {}, dividendTotal: 0, xirr: null });
+      DashboardModule.renderPortfolio({ holdings, watchlist, transactions: txs, cash: demoCash, unrealized: 0, unrealPct: 0, realized: 0, totalAssets: demoTotal, todayPnL: 0, thesisMap: {}, dividendTotal: 0, xirr: null });
     } else if (_page === 'watchlist') {
       DashboardModule.renderWatchlist({ watchlist });
     } else if (_page === 'history') {
