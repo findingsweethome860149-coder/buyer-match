@@ -29,7 +29,7 @@ const App = (() => {
   function navigate(page) {
     if (page === 'settings' && SecurityModule.isPINEnabled()) {
       SecurityModule.prompt({
-        title: '請輸入 PIN 進入設定',
+        title: '請輸入通關密碼進入設定',
         onSuccess: () => _doNavigate(page),
         onCancel:  () => {},
       });
@@ -834,7 +834,7 @@ const App = (() => {
       }
     };
     if (SecurityModule.isPINEnabled()) {
-      SecurityModule.prompt({ title: '請輸入 PIN 確認匯入', onSuccess: _doImport });
+      SecurityModule.prompt({ title: '請輸入通關密碼確認匯入', onSuccess: _doImport });
     } else {
       _doImport();
     }
@@ -845,7 +845,7 @@ const App = (() => {
   function setupPIN() {
     SecurityModule.promptSetNew({
       onSuccess: () => {
-        NotificationModule.toast('PIN 已設定，下次開啟 App 將要求輸入');
+        NotificationModule.toast('通關密碼已設定，下次開啟 App 將要求輸入');
         DashboardModule.renderSettings({ settings: DB.Settings.get(), pinEnabled: SecurityModule.isPINEnabled() });
         SecurityModule.log('setupPIN');
       },
@@ -854,11 +854,11 @@ const App = (() => {
 
   function changePIN() {
     SecurityModule.prompt({
-      title: '輸入目前 PIN 碼',
+      title: '輸入目前通關密碼',
       onSuccess: () => {
         SecurityModule.promptSetNew({
           onSuccess: () => {
-            NotificationModule.toast('PIN 已更新');
+            NotificationModule.toast('通關密碼已更新');
             DashboardModule.renderSettings({ settings: DB.Settings.get(), pinEnabled: SecurityModule.isPINEnabled() });
           },
         });
@@ -868,10 +868,10 @@ const App = (() => {
 
   function disablePIN() {
     SecurityModule.prompt({
-      title: '輸入 PIN 碼確認關閉',
+      title: '輸入通關密碼確認關閉',
       onSuccess: () => {
         SecurityModule.disablePIN();
-        NotificationModule.toast('PIN 保護已關閉');
+        NotificationModule.toast('密碼保護已關閉');
         DashboardModule.renderSettings({ settings: DB.Settings.get(), pinEnabled: SecurityModule.isPINEnabled() });
       },
     });
@@ -1043,7 +1043,7 @@ const App = (() => {
       document.getElementById('onboarding').classList.add('show');
     } else if (SecurityModule.isPINEnabled()) {
       SecurityModule.prompt({
-        title:       '輸入 PIN 碼解鎖',
+        title:       '輸入通關密碼解鎖',
         allowCancel: false,
         onSuccess:   () => _safeRender(),
       });

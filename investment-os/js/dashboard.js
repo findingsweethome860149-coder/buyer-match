@@ -493,23 +493,23 @@ const DashboardModule = (() => {
       </div>
 
       <div class="card">
-        <div class="card-title">安全</div>
+        <div class="card-title">通關密碼</div>
         <div class="setting-row">
-          <span class="setting-label">PIN 鎖定</span>
+          <span class="setting-label">開啟密碼保護</span>
           ${pinEnabled ? `
             <div style="display:flex;align-items:center;gap:12px">
               <span style="font-size:13px;color:var(--green);font-weight:600">已開啟</span>
-              <span style="font-size:13px;color:var(--accent);cursor:pointer" onclick="App.changePIN()">更改 PIN</span>
+              <span style="font-size:13px;color:var(--accent);cursor:pointer" onclick="App.changePIN()">修改密碼</span>
               <span style="font-size:13px;color:var(--red);cursor:pointer" onclick="App.disablePIN()">關閉</span>
             </div>` : `
-            <span style="font-size:13px;color:var(--accent);cursor:pointer" onclick="App.setupPIN()">設定 PIN →</span>`}
+            <span style="font-size:13px;color:var(--accent);cursor:pointer;font-weight:600" onclick="App.setupPIN()">立即設定 →</span>`}
         </div>
         ${pinEnabled ? `
         <div style="font-size:12px;color:var(--muted);margin-top:6px">
-          開啟 App 及執行匯入、清除操作時需輸入 PIN
+          每次開啟 App 需輸入 4 位數密碼才能進入
         </div>` : `
         <div style="font-size:12px;color:var(--muted);margin-top:6px">
-          設定 4 位數 PIN，保護 App 開啟與重要操作
+          設定 4 位數密碼，每次開啟 App 需驗證身份
         </div>`}
       </div>
 

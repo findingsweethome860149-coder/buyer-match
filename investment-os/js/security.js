@@ -104,7 +104,7 @@ const SecurityModule = (() => {
     _allowCancel = true;
     _failCount   = 0;
     _locked      = false;
-    _show('設定新 PIN 碼（4 位數）');
+    _show('設定新密碼（4 位數）');
   }
 
   function _show(title) {
@@ -163,7 +163,7 @@ const SecurityModule = (() => {
           _setError('嘗試次數過多，請 30 秒後再試');
           setTimeout(() => { _locked = false; _failCount = 0; _setError(''); }, PIN_LOCKOUT_MS);
         } else {
-          _setError(`PIN 不正確，還有 ${MAX_PIN_FAILS - _failCount} 次機會`);
+          _setError(`密碼錯誤，還有 ${MAX_PIN_FAILS - _failCount} 次機會`);
         }
         setTimeout(() => { _entered = ''; _updateDots(); }, 600);
       }
@@ -190,7 +190,7 @@ const SecurityModule = (() => {
           _newPIN  = '';
           _mode    = 'set';
           const el = document.getElementById('pinTitle');
-          if (el) el.textContent = '設定新 PIN 碼（4 位數）';
+          if (el) el.textContent = '設定新密碼（4 位數）';
           _updateDots();
           _setError('');
         }, 800);
