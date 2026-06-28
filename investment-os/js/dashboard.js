@@ -513,30 +513,7 @@ const DashboardModule = (() => {
         </div>`}
       </div>
 
-      <div class="line-card">
-        <div class="line-card-title">LINE Assistant</div>
-        <div class="line-card-sub">透過 LINE 完成入金、買入、賣出、查詢持股。所有交易經過二次確認，Dashboard 自動同步。</div>
-        <div style="margin-top:10px">
-          <label class="form-label" style="font-size:12px;margin-bottom:4px;display:block">Webhook 伺服器網址</label>
-          <div style="display:flex;gap:6px">
-            <input class="form-input" id="lineServerUrl" type="url" placeholder="https://your-server.example.com"
-              style="flex:1;font-size:12px"
-              value="${(typeof localStorage !== 'undefined' ? localStorage.getItem('aios_line_server_url') : '') || ''}">
-            <button class="btn" style="font-size:12px;padding:6px 10px" onclick="App.saveLineServerUrl()">儲存</button>
-          </div>
-          <div style="font-size:11px;color:var(--muted);margin-top:4px">設定後可自動更新 Yahoo Finance 股價，並每 15 秒同步 LINE 操作</div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">通知設定</div>
-        <div class="insight-item">
-          <div class="insight-icon">🔔</div>
-          <div class="insight-text">盤前摘要、盤中重大事件、盤後摘要<br><span style="font-size:12px">⏳ 即將推出 · 需要後端服務</span></div>
-        </div>
-      </div>
-
-      <div class="card">
+<div class="card">
         <div class="card-title">關於</div>
         <div class="insight-item">
           <div class="insight-icon">✦</div>
