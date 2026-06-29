@@ -16,6 +16,9 @@ const PriceModule = (() => {
   // Yahoo Finance chart API (fallback, per-stock)
   const YF_BASE = 'https://query2.finance.yahoo.com/v8/finance/chart/';
 
+  // CORS proxy (used when direct fetch is blocked)
+  const CORS_PROXY = 'https://corsproxy.io/?';
+
   const _cache = {};
 
   // ── Stock lookup ─────────────────────────────────────────────────────────────
@@ -72,12 +75,17 @@ const PriceModule = (() => {
     if (serverUrl) {
       await _fetchViaServer(serverUrl, toFetch, result, now);
     } else {
-      // Try TWSE first, fall back to Yahoo Finance per stock
-      const fetched = await _fetchViaTWSE(toFetch, result, now);
-      const missing = toFetch.filter(id => !result[id]);
-      if (missing.length > 0) {
-        await _fetchViaYahoo(missing, result, now);
-      }
+      // 1. TWSE direct
+      await _fetchViaTWSE(toFetch, result, now, false);
+      let missing = toFetch.filter(id => !result[id]);
+      // 2. TWSE via CORS proxy
+      if (missing.length > 0) await _fetchViaTWSE(missing, result, now, true);
+      missing = toFetch.filter(id => !result[id]);
+      // 3. Yahoo Finance direct
+      if (missing.length > 0) await _fetchViaYahoo(missing, result, now, false);
+      missing = toFetch.filter(id => !result[id]);
+      // 4. Yahoo Finance via CORS proxy
+      if (missing.length > 0) await _fetchViaYahoo(missing, result, now, true);
     }
 
     return result;
@@ -107,9 +115,12 @@ const PriceModule = (() => {
         }
       }
     } catch { /* fall through */ }
-    // Yahoo Finance fallback for TAIEX (^TWII)
-    try {
-      const r = await fetch(`${YF_BASE}%5ETWII?interval=1d&range=2d`, { signal: AbortSignal.timeout(8000) });
+    // Yahoo Finance fallback for TAIEX (^TWII), try direct then proxy
+    for (const useProxy of [false, true]) {
+      try {
+      const directUrl = `${YF_BASE}%5ETWII?interval=1d&range=2d`;
+      const url = useProxy ? CORS_PROXY + encodeURIComponent(directUrl) : directUrl;
+      const r = await fetch(url, { signal: AbortSignal.timeout(8000) });
       if (r.ok) {
         const body = await r.json();
         const meta = body?.chart?.result?.[0]?.meta;
@@ -119,7 +130,8 @@ const PriceModule = (() => {
           return { price, change: +(price - prev).toFixed(2), changePct: +((price - prev) / prev * 100).toFixed(2) };
         }
       }
-    } catch { /* offline */ }
+      } catch { /* try next */ }
+    }
     return null;
   }
 
@@ -147,10 +159,11 @@ const PriceModule = (() => {
     } catch { /* server unreachable */ }
   }
 
-  async function _fetchViaTWSE(ids, out, now) {
+  async function _fetchViaTWSE(ids, out, now, useProxy = false) {
     try {
       if (!_twseOpenCache || now - _twseOpenAt > TWSE_OPEN_TTL) {
-        const r = await fetch(TWSE_OPEN_URL, { signal: AbortSignal.timeout(12000) });
+        const url = useProxy ? CORS_PROXY + encodeURIComponent(TWSE_OPEN_URL) : TWSE_OPEN_URL;
+        const r = await fetch(url, { signal: AbortSignal.timeout(12000) });
         if (!r.ok) return false;
         const list = await r.json();
         _twseOpenCache = new Map();
@@ -174,11 +187,13 @@ const PriceModule = (() => {
   }
 
   // Yahoo Finance fallback — one request per stock
-  async function _fetchViaYahoo(ids, out, now) {
+  async function _fetchViaYahoo(ids, out, now, useProxy = false) {
     await Promise.allSettled(ids.map(async id => {
       try {
         const symbol = id + '.TW';
-        const r = await fetch(`${YF_BASE}${symbol}?interval=1d&range=2d`, { signal: AbortSignal.timeout(10000) });
+        const directUrl = `${YF_BASE}${symbol}?interval=1d&range=2d`;
+        const url = useProxy ? CORS_PROXY + encodeURIComponent(directUrl) : directUrl;
+        const r = await fetch(url, { signal: AbortSignal.timeout(10000) });
         if (!r.ok) return;
         const body = await r.json();
         const meta = body?.chart?.result?.[0]?.meta;
