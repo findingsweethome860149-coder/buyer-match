@@ -18,22 +18,24 @@
     max-width: 210mm;
     margin: 0 auto;
     padding: 8mm;
+    padding-top: 80px;
     padding-bottom: 190px;
   }
 
-  /* ── 封面表頭 ── */
+  /* ── 固定頁首（每頁重複） ── */
   .cover-brand {
+    position: fixed;
+    top: 0; left: 0; right: 0;
     display: flex;
     align-items: center;
     gap: 12px;
-    border-bottom: 4px solid #3d6b4f;
-    padding-bottom: 10px;
-    margin-bottom: 14px;
-    flex-wrap: wrap;
+    background: #fff;
+    border-bottom: 3px solid #3d6b4f;
+    padding: 6px 14mm;
   }
-  .cover-logo { width: 60px; display: block; flex-shrink: 0; }
-  .cover-brand-info { font-size: 16px; color: #555; line-height: 1.7; }
-  .cover-brand-info strong { color: #3d6b4f; font-size: 18px; }
+  .cover-logo { width: 50px; display: block; flex-shrink: 0; }
+  .cover-brand-info { font-size: 16px; color: #555; line-height: 1.6; }
+  .cover-brand-info strong { color: #3d6b4f; font-size: 16px; }
   .cover {
     display: flex;
     justify-content: space-between;
