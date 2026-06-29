@@ -531,7 +531,7 @@ const App = (() => {
 
       const prices = await PriceModule.fetchPrices(allIds);
       if (!prices || Object.keys(prices).length === 0) {
-        _setPriceStatus('無法取得股價，請確認網路連線');
+        _setPriceStatus(allIds.length > 0 ? `股價暫時無法取得（${allIds.join('、')}），稍後自動重試` : '');
         return;
       }
 
