@@ -19,8 +19,8 @@ jobs:
       - name: Fetch TWSE prices
         run: |
           # Try TWSE Open API with browser-like headers
-          curl -sf --max-time 20 \
-            -H "Accept: application/json" \
+          curl -sf --max-time 60 --compressed \
+            -H "Accept: application/json, */*" \
             -H "User-Agent: Mozilla/5.0 (compatible; GitHub-Actions)" \
             "https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_AVG_ALL" \
             -o /tmp/twse_raw.json || true
