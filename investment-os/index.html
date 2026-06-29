@@ -182,10 +182,20 @@
       <select class="form-input" id="txType">
         <option value="buy">買入</option>
         <option value="sell">賣出</option>
+        <option value="deposit">入金</option>
+        <option value="withdraw">出金</option>
         <option value="dividend">現金股利</option>
         <option value="stock_dividend">股票股利</option>
       </select>
     </div>
+    <!-- Cash in/out fields (deposit / withdraw) -->
+    <div id="txCashFields" style="display:none">
+      <div class="form-group">
+        <label class="form-label">金額（元）</label>
+        <input class="form-input" id="txCashAmt" type="number" placeholder="例：100000" min="1" step="1">
+      </div>
+    </div>
+
     <div id="txStockFields">
       <div class="form-row">
         <div class="form-group">

@@ -512,6 +512,10 @@ const App = (() => {
   const _volHistory = {};
 
   async function refreshPrices() {
+    if (!LicenseModule.isActivated()) {
+      NotificationModule.toast('體驗模式不支援即時股價，請輸入授權碼啟用');
+      return;
+    }
 
     const btn = document.getElementById('refreshPriceBtn');
     if (btn) btn.classList.add('spinning');
