@@ -102,4 +102,5 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add investment-os/prices.json
           git diff --cached --quiet || git commit -m "chore: update stock prices [skip ci]"
+          git pull --rebase origin main
           git push
