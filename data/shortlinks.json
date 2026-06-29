@@ -1,0 +1,80 @@
+[
+  {
+    "short": "gushan1500",
+    "target": "/buyer-match/hb-gushan-1500-1650.html",
+    "label": "鼓山區 1500-1650萬 大樓",
+    "created": "2026-06-29"
+  },
+  {
+    "short": "hong",
+    "target": "/buyer-match/hong-match-report.html",
+    "label": "hong-match-report.html",
+    "created": "2026-06-29"
+  },
+  {
+    "short": "huang",
+    "target": "/buyer-match/huang-match-report.html",
+    "label": "huang-match-report.html",
+    "created": "2026-06-29"
+  },
+  {
+    "short": "jian",
+    "target": "/buyer-match/jian-match-report.html",
+    "label": "jian-match-report.html",
+    "created": "2026-06-29"
+  },
+  {
+    "short": "liu",
+    "target": "/buyer-match/liu-match-report.html",
+    "label": "liu-match-report.html",
+    "created": "2026-06-29"
+  },
+  {
+    "short": "oukyo",
+    "target": "/buyer-match/oukyo-brief.html",
+    "label": "oukyo-brief.html",
+    "created": "2026-06-29"
+  },
+  {
+    "short": "su",
+    "target": "/buyer-match/su-match-report.html",
+    "label": "su-match-report.html",
+    "created": "2026-06-29"
+  },
+  {
+    "short": "vanessa",
+    "target": "/buyer-match/vanessa-match-report.html",
+    "label": "vanessa-match-report.html",
+    "created": "2026-06-29"
+  },
+  {
+    "short": "wang",
+    "target": "/buyer-match/wang-match-report.html",
+    "label": "wang-match-report.html",
+    "created": "2026-06-29"
+  },
+  {
+    "short": "wu",
+    "target": "/buyer-match/wu-match-report.html",
+    "label": "wu-match-report.html",
+    "created": "2026-06-29"
+  },
+  {
+    "short": "yang",
+    "target": "/buyer-match/yang-match-report.html",
+    "label": "yang-match-report.html",
+    "created": "2026-06-29"
+  },
+  {
+    "short": "zhong",
+    "target": "/buyer-match/zhong-match-report.html",
+    "label": "zhong-match-report.html",
+    "created": "2026-06-29"
+  },
+  {
+    "short": "zhuang",
+    "target": "/buyer-match/zhuang-match-report.html",
+    "label": "zhuang-match-report.html",
+    "created": "2026-06-29"
+  }
+]
