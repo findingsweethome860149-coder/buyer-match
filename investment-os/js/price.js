@@ -1,31 +1,32 @@
 /**
- * Price Module — TWSE direct browser fetch + server proxy fallback.
+ * Price Module — TWSE open API with Yahoo Finance fallback.
  * Read-only. Never writes to any data store.
  */
 const PriceModule = (() => {
-  const CACHE_TTL_MS   = 90 * 1000; // 90-second client-side cache
+  const CACHE_TTL_MS   = 90 * 1000;
   const SERVER_URL_KEY = 'aios_line_server_url';
   const MARKET_OPEN_H  = 9,  MARKET_OPEN_M  = 0;
   const MARKET_CLOSE_H = 13, MARKET_CLOSE_M = 30;
 
-  // TWSE Open API (bulk, no proxy needed, browser-friendly)
+  // TWSE Open API
   const TWSE_OPEN_URL = 'https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_AVG_ALL';
   let _twseOpenCache = null, _twseOpenAt = 0;
   const TWSE_OPEN_TTL = 3 * 60 * 1000;
 
+  // Yahoo Finance chart API (fallback, per-stock)
+  const YF_BASE = 'https://query2.finance.yahoo.com/v8/finance/chart/';
+
   const _cache = {};
 
-  // ── Stock lookup (code ↔ name) ──────────────────────────────────────────────
-
-  // Returns { code→name } and { name→code } maps, loaded once per session
-  let _stockMap = null; // Map: code → name
-  let _nameMap  = null; // Map: name → code (first match)
+  // ── Stock lookup ─────────────────────────────────────────────────────────────
+  let _stockMap = null;
+  let _nameMap  = null;
 
   async function loadStockList() {
     if (_stockMap) return;
     try {
       const r = await fetch(TWSE_OPEN_URL, { signal: AbortSignal.timeout(12000) });
-      if (!r.ok) return;
+      if (!r.ok) throw new Error('twse 403');
       const list = await r.json();
       _stockMap = new Map();
       _nameMap  = new Map();
@@ -45,16 +46,14 @@ const PriceModule = (() => {
   function lookupByName(name) {
     if (!_nameMap) return null;
     const q = name.trim();
-    // exact match first
     if (_nameMap.has(q)) return _nameMap.get(q);
-    // partial match
     for (const [n, code] of _nameMap) {
       if (n.includes(q) || q.includes(n)) return code;
     }
     return null;
   }
 
-  // ── Public API ──────────────────────────────────────────────────────────────
+  // ── Public API ───────────────────────────────────────────────────────────────
 
   async function fetchPrices(stockIds) {
     if (!stockIds || stockIds.length === 0) return {};
@@ -71,11 +70,14 @@ const PriceModule = (() => {
 
     const serverUrl = _serverUrl();
     if (serverUrl) {
-      // Use server proxy (returns real-time MIS data with volume)
       await _fetchViaServer(serverUrl, toFetch, result, now);
     } else {
-      // Direct browser call to TWSE Open API (no server needed)
-      await _fetchViaTWSE(toFetch, result, now);
+      // Try TWSE first, fall back to Yahoo Finance per stock
+      const fetched = await _fetchViaTWSE(toFetch, result, now);
+      const missing = toFetch.filter(id => !result[id]);
+      if (missing.length > 0) {
+        await _fetchViaYahoo(missing, result, now);
+      }
     }
 
     return result;
@@ -89,20 +91,36 @@ const PriceModule = (() => {
         if (r.ok) return await r.json();
       } catch { /* fall through */ }
     }
-    // Direct TWSE MIS for TAIEX
+    // Try TWSE MIS
     try {
       const r = await fetch(
         'https://mis.twse.com.tw/stock/api/getStockInfo.jsp?ex_ch=tse_t00.tw&json=1&delay=0',
         { signal: AbortSignal.timeout(8000) }
       );
-      if (!r.ok) return null;
-      const body = await r.json();
-      const row  = (body?.msgArray || [])[0];
-      if (!row) return null;
-      const price = parseFloat(row.z !== '-' ? row.z : row.y);
-      const prev  = parseFloat(row.y) || price;
-      return { price, change: +(price - prev).toFixed(2), changePct: +((price - prev) / prev * 100).toFixed(2) };
-    } catch { return null; }
+      if (r.ok) {
+        const body = await r.json();
+        const row  = (body?.msgArray || [])[0];
+        if (row) {
+          const price = parseFloat(row.z !== '-' ? row.z : row.y);
+          const prev  = parseFloat(row.y) || price;
+          return { price, change: +(price - prev).toFixed(2), changePct: +((price - prev) / prev * 100).toFixed(2) };
+        }
+      }
+    } catch { /* fall through */ }
+    // Yahoo Finance fallback for TAIEX (^TWII)
+    try {
+      const r = await fetch(`${YF_BASE}%5ETWII?interval=1d&range=2d`, { signal: AbortSignal.timeout(8000) });
+      if (r.ok) {
+        const body = await r.json();
+        const meta = body?.chart?.result?.[0]?.meta;
+        if (meta) {
+          const price = meta.regularMarketPrice || meta.previousClose;
+          const prev  = meta.chartPreviousClose || meta.previousClose || price;
+          return { price, change: +(price - prev).toFixed(2), changePct: +((price - prev) / prev * 100).toFixed(2) };
+        }
+      }
+    } catch { /* offline */ }
+    return null;
   }
 
   function isMarketOpen() {
@@ -115,7 +133,7 @@ const PriceModule = (() => {
 
   function isConfigured() { return !!_serverUrl(); }
 
-  // ── Private ─────────────────────────────────────────────────────────────────
+  // ── Private ──────────────────────────────────────────────────────────────────
 
   async function _fetchViaServer(serverUrl, ids, out, now) {
     try {
@@ -131,10 +149,9 @@ const PriceModule = (() => {
 
   async function _fetchViaTWSE(ids, out, now) {
     try {
-      // Bulk download all TSE stocks (CORS-enabled open data)
       if (!_twseOpenCache || now - _twseOpenAt > TWSE_OPEN_TTL) {
         const r = await fetch(TWSE_OPEN_URL, { signal: AbortSignal.timeout(12000) });
-        if (!r.ok) return;
+        if (!r.ok) return false;
         const list = await r.json();
         _twseOpenCache = new Map();
         list.forEach(row => {
@@ -152,7 +169,29 @@ const PriceModule = (() => {
           out[id]    = _cache[id];
         }
       });
-    } catch { /* CORS blocked or API down */ }
+      return true;
+    } catch { return false; }
+  }
+
+  // Yahoo Finance fallback — one request per stock
+  async function _fetchViaYahoo(ids, out, now) {
+    await Promise.allSettled(ids.map(async id => {
+      try {
+        const symbol = id + '.TW';
+        const r = await fetch(`${YF_BASE}${symbol}?interval=1d&range=2d`, { signal: AbortSignal.timeout(10000) });
+        if (!r.ok) return;
+        const body = await r.json();
+        const meta = body?.chart?.result?.[0]?.meta;
+        if (!meta) return;
+        const price = meta.regularMarketPrice || meta.previousClose;
+        if (!price || isNaN(price)) return;
+        const prev  = meta.chartPreviousClose || meta.previousClose || price;
+        const change    = +(price - prev).toFixed(2);
+        const changePct = +(change / prev * 100).toFixed(2);
+        _cache[id] = { price, name: id, change, changePct, volume: null, source: 'yahoo', fetchedAt: now };
+        out[id]    = _cache[id];
+      } catch { /* skip this stock */ }
+    }));
   }
 
   function _serverUrl() {
