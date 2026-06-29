@@ -8,7 +8,15 @@ const PriceModule = (() => {
   const MARKET_OPEN_H  = 9,  MARKET_OPEN_M  = 0;
   const MARKET_CLOSE_H = 13, MARKET_CLOSE_M = 30;
 
-  // TWSE Open API
+  // Static prices.json committed by GitHub Actions (same-origin, no CORS)
+  const STATIC_PRICES_URL = (() => {
+    const base = location.pathname.replace(/\/[^/]*$/, '');
+    return base + '/prices.json';
+  })();
+  let _staticCache = null, _staticAt = 0;
+  const STATIC_TTL = 5 * 60 * 1000; // re-fetch every 5 min
+
+  // TWSE Open API (direct, may be CORS-blocked)
   const TWSE_OPEN_URL = 'https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_AVG_ALL';
   let _twseOpenCache = null, _twseOpenAt = 0;
   const TWSE_OPEN_TTL = 3 * 60 * 1000;
@@ -16,7 +24,7 @@ const PriceModule = (() => {
   // Yahoo Finance chart API (fallback, per-stock)
   const YF_BASE = 'https://query2.finance.yahoo.com/v8/finance/chart/';
 
-  // CORS proxy (used when direct fetch is blocked)
+  // CORS proxy (last resort)
   const CORS_PROXY = 'https://corsproxy.io/?';
 
   const _cache = {};
@@ -75,16 +83,19 @@ const PriceModule = (() => {
     if (serverUrl) {
       await _fetchViaServer(serverUrl, toFetch, result, now);
     } else {
-      // 1. TWSE direct
-      await _fetchViaTWSE(toFetch, result, now, false);
+      // 1. Static prices.json (same-origin, committed by GitHub Actions)
+      await _fetchViaStatic(toFetch, result, now);
       let missing = toFetch.filter(id => !result[id]);
-      // 2. TWSE via CORS proxy
+      // 2. TWSE direct
+      if (missing.length > 0) await _fetchViaTWSE(missing, result, now, false);
+      missing = toFetch.filter(id => !result[id]);
+      // 3. TWSE via CORS proxy
       if (missing.length > 0) await _fetchViaTWSE(missing, result, now, true);
       missing = toFetch.filter(id => !result[id]);
-      // 3. Yahoo Finance direct
+      // 4. Yahoo Finance direct
       if (missing.length > 0) await _fetchViaYahoo(missing, result, now, false);
       missing = toFetch.filter(id => !result[id]);
-      // 4. Yahoo Finance via CORS proxy
+      // 5. Yahoo Finance via CORS proxy
       if (missing.length > 0) await _fetchViaYahoo(missing, result, now, true);
     }
 
@@ -157,6 +168,25 @@ const PriceModule = (() => {
         out[id]    = _cache[id];
       });
     } catch { /* server unreachable */ }
+  }
+
+  async function _fetchViaStatic(ids, out, now) {
+    try {
+      if (!_staticCache || now - _staticAt > STATIC_TTL) {
+        const r = await fetch(STATIC_PRICES_URL + '?t=' + now, { signal: AbortSignal.timeout(8000) });
+        if (!r.ok) return;
+        const data = await r.json();
+        _staticCache = data.prices || {};
+        _staticAt = now;
+      }
+      ids.forEach(id => {
+        const d = _staticCache[id];
+        if (d) {
+          _cache[id] = { price: d.price, name: d.name, change: null, changePct: null, volume: null, source: 'static', fetchedAt: now };
+          out[id] = _cache[id];
+        }
+      });
+    } catch { /* file not yet generated */ }
   }
 
   async function _fetchViaTWSE(ids, out, now, useProxy = false) {

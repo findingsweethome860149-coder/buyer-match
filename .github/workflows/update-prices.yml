@@ -1,0 +1,44 @@
+name: Update Stock Prices
+
+on:
+  schedule:
+    # Every 15 min on weekdays 8:45–13:35 Taiwan time (UTC+8 = UTC 00:45–05:35)
+    - cron: '45,0,15,30 0,1,2,3,4,5 * * 1-5'
+    # Once after close (14:00 TWN = 06:00 UTC) to capture final prices
+    - cron: '0 6 * * 1-5'
+  workflow_dispatch:
+
+jobs:
+  fetch-prices:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch TWSE prices
+        run: |
+          curl -sf --max-time 20 \
+            "https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_AVG_ALL" \
+            -o /tmp/twse_raw.json || echo "[]" > /tmp/twse_raw.json
+
+          node -e "
+            const fs = require('fs');
+            const raw = JSON.parse(fs.readFileSync('/tmp/twse_raw.json','utf8'));
+            const out = {};
+            raw.forEach(r => {
+              const p = parseFloat(r.ClosingPrice);
+              if (r.Code && !isNaN(p)) out[r.Code] = { price: p, name: r.Name || r.Code };
+            });
+            const result = { updatedAt: new Date().toISOString(), prices: out };
+            fs.writeFileSync('investment-os/prices.json', JSON.stringify(result));
+            console.log('Wrote', Object.keys(out).length, 'prices');
+          "
+
+      - name: Commit prices
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add investment-os/prices.json
+          git diff --cached --quiet || git commit -m "chore: update stock prices [skip ci]"
+          git push
