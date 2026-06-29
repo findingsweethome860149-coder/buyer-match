@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>鼓山區精選物件 1500–1650萬 大樓 — 愛家的綸</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Noto Sans TC', '微軟正黑體', sans-serif; background: #f7f3ed; color: #2c2c2c; }
+
+/* Hero */
+.hero { display: flex; min-height: 180px; background: #f7f3ed; overflow: hidden; border-bottom: 3px solid #3d6b4f; }
+.hero-left { flex: 1; padding: 32px 28px; display: flex; flex-direction: column; justify-content: center; gap: 12px; }
+.hero-logo { width: 72px; }
+.hero-tagline { font-size: 1.45rem; font-weight: 700; color: #2c2c2c; line-height: 1.6; }
+.hero-sub { font-size: 0.86rem; color: #5a5a5a; line-height: 1.9; }
+.hero-right { width: 280px; min-width: 180px; overflow: hidden; background: #3d6b4f; display: flex; align-items: center; justify-content: center; }
+.hero-right .badge { text-align: center; color: #fff; padding: 20px; }
+.hero-right .badge-num { font-size: 3rem; font-weight: 700; line-height: 1; }
+.hero-right .badge-label { font-size: 0.9rem; margin-top: 6px; opacity: 0.85; }
+
+/* Agent bar */
+.agent-bar { background: #3d6b4f; color: #fff; padding: 11px 24px; display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.agent-bar .name { font-weight: 700; font-size: 0.98rem; }
+.agent-bar .info { font-size: 0.8rem; opacity: 0.9; }
+.agent-bar a { color: #b8dfc8; text-decoration: none; font-size: 0.8rem; }
+.agent-bar a:hover { color: #fff; }
+
+/* Filter summary */
+.filter-bar { background: #fff; border-bottom: 1px solid #e5ddd4; padding: 12px 20px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.filter-bar .label { font-size: 0.8rem; color: #888; margin-right: 4px; }
+.ftag { background: #f0ebe3; border: 1px solid #d4c9b8; color: #4a3a2a; font-size: 0.78rem; padding: 3px 12px; border-radius: 20px; }
+.ftag.green { background: #e8f4ed; border-color: #a8ccb5; color: #2d5a3d; }
+.result-count { margin-left: auto; font-size: 0.82rem; color: #666; }
+.result-count strong { color: #c0392b; font-size: 1rem; }
+
+/* Main container */
+.main { max-width: 860px; margin: 24px auto; padding: 0 14px 40px; }
+
+/* Property card */
+.prop-card { background: #fff; border-radius: 10px; border: 1px solid #e5ddd4; margin-bottom: 16px; overflow: hidden; transition: box-shadow 0.2s, border-color 0.2s; }
+.prop-card:hover { box-shadow: 0 4px 18px rgba(61,107,79,0.13); border-color: #3d6b4f; }
+
+.prop-inner { display: flex; gap: 0; }
+.prop-img-wrap { width: 160px; min-width: 160px; position: relative; overflow: hidden; }
+.prop-img-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; min-height: 140px; }
+.badge-drop { position: absolute; top: 8px; left: 8px; background: #c0392b; color: #fff; font-size: 0.7rem; font-weight: 700; padding: 3px 8px; border-radius: 4px; }
+.badge-new { position: absolute; top: 8px; left: 8px; background: #3d6b4f; color: #fff; font-size: 0.7rem; font-weight: 700; padding: 3px 8px; border-radius: 4px; }
+
+.prop-body { flex: 1; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
+.prop-id { font-size: 0.7rem; color: #aaa; }
+.prop-title { font-size: 1rem; font-weight: 700; color: #2c2c2c; line-height: 1.4; }
+.prop-title a { color: inherit; text-decoration: none; }
+.prop-title a:hover { color: #3d6b4f; }
+.prop-addr { font-size: 0.8rem; color: #888; }
+.prop-desc { font-size: 0.78rem; color: #666; line-height: 1.6; border-left: 3px solid #e0d8cc; padding-left: 8px; margin: 2px 0; }
+
+.prop-specs { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 2px; }
+.spec { background: #f0ebe3; font-size: 0.73rem; padding: 2px 9px; border-radius: 4px; color: #5a4a38; }
+.spec.parking { background: #e8f4ed; color: #2d5a3d; border: 1px solid #a8ccb5; }
+.spec.age { background: #fdf4e3; color: #7a5800; }
+.spec.mrt { background: #e8eef8; color: #2a3d6a; }
+
+.prop-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.ptag { font-size: 0.7rem; padding: 2px 8px; border-radius: 12px; border: 1px solid #d4d4d4; color: #666; }
+.ptag.drop { border-color: #f5a0a0; color: #c0392b; background: #fff5f5; }
+.ptag.rec { border-color: #a8ccb5; color: #2d5a3d; background: #e8f4ed; }
+
+.prop-right { padding: 14px 16px; min-width: 120px; display: flex; flex-direction: column; align-items: flex-end; justify-content: space-between; border-left: 1px solid #f0ebe3; }
+.price-orig { font-size: 0.75rem; color: #bbb; text-decoration: line-through; text-align: right; }
+.price-main { font-size: 1.25rem; font-weight: 700; color: #c0392b; text-align: right; white-space: nowrap; }
+.price-unit { font-size: 0.75rem; color: #888; }
+.price-per { font-size: 0.72rem; color: #aaa; text-align: right; margin-top: 2px; }
+.prop-btns { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.btn-detail { display: block; background: #3d6b4f; color: #fff; font-size: 0.72rem; font-weight: 700; padding: 6px 12px; border-radius: 5px; text-decoration: none; text-align: center; }
+.btn-detail:hover { background: #2f5440; }
+.btn-appt { display: block; background: #06C755; color: #fff; font-size: 0.72rem; font-weight: 700; padding: 6px 12px; border-radius: 5px; text-decoration: none; text-align: center; }
+.btn-appt:hover { background: #05a847; }
+
+/* Section header */
+.section-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 2px solid #3d6b4f; }
+.section-header h2 { font-size: 1.05rem; font-weight: 700; color: #3d6b4f; }
+.section-header .sub { font-size: 0.82rem; color: #888; }
+
+/* Footer CTA */
+.footer-cta { background: #fff; border: 1px solid #e5ddd4; border-radius: 10px; padding: 20px 20px; margin-bottom: 20px; text-align: center; }
+.footer-cta h3 { font-size: 1rem; font-weight: 700; color: #3d6b4f; margin-bottom: 12px; }
+.cta-btns { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.cta-btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px; border-radius: 8px; font-size: 0.88rem; font-weight: 700; text-decoration: none; }
+.cta-btn.line { background: #06C755; color: #fff; }
+.cta-btn.tel { background: #3d6b4f; color: #fff; }
+.cta-btn.line:hover { background: #05a847; }
+.cta-btn.tel:hover { background: #2f5440; }
+
+/* Footer */
+.footer { background: #2c2c2c; color: #aaa; text-align: center; padding: 24px 16px; font-size: 0.8rem; }
+.footer strong { color: #fff; }
+.footer a { color: #b8dfc8; text-decoration: none; }
+
+/* Mobile */
+@media(max-width: 620px) {
+  .hero-right { display: none; }
+  .prop-inner { flex-direction: column; }
+  .prop-img-wrap { width: 100%; min-height: 200px; }
+  .prop-right { flex-direction: row; align-items: center; border-left: none; border-top: 1px solid #f0ebe3; padding: 12px 14px; }
+  .prop-btns { flex-direction: row; margin-top: 0; }
+  .price-orig, .price-per { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- Hero -->
+<div class="hero">
+  <div class="hero-left">
+    <img src="icon-192.png" alt="愛家的綸" class="hero-logo" onerror="this.style.display='none'">
+    <div class="hero-tagline">鼓山區精選物件<br>為您整理好了 ✦</div>
+    <div class="hero-sub">
+      住商左營崇德加盟店 家綸<br>
+      以下為本次篩選條件的符合物件，歡迎預約帶看。
+    </div>
+  </div>
+  <div class="hero-right">
+    <div class="badge">
+      <div class="badge-num">10</div>
+      <div class="badge-label">筆精選物件<br>鼓山區大樓</div>
+    </div>
+  </div>
+</div>
+
+<!-- Agent bar -->
+<div class="agent-bar">
+  <span class="name">🏠 張家綸</span>
+  <span class="info">住商左營崇德加盟店</span>
+  <a href="tel:0900000000">📞 預約帶看</a>
+  <a href="https://line.me/ti/p/~@jialing" target="_blank">💬 LINE 聯絡</a>
+</div>
+
+<!-- Filter summary -->
+<div class="filter-bar">
+  <span class="label">搜尋條件</span>
+  <span class="ftag green">高雄市鼓山區</span>
+  <span class="ftag green">大樓（11樓以上）</span>
+  <span class="ftag">總價 1500–1650 萬</span>
+  <span class="ftag">電梯大樓</span>
+  <span class="result-count">共 <strong>10</strong> 筆物件</span>
+</div>
+
+<!-- Main -->
+<div class="main">
+
+  <div class="section-header">
+    <h2>🏢 鼓山區精選物件</h2>
+    <span class="sub">依價格由低到高排列</span>
+  </div>
+
+  <!-- Property 1 -->
+  <div class="prop-card">
+    <div class="prop-inner">
+      <div class="prop-img-wrap">
+        <img src="https://res.sinyi.com.tw/buy/3553LQ/bigimg/A.JPG" alt="美術館成家質感三房" loading="lazy">
+      </div>
+      <div class="prop-body">
+        <div class="prop-id">物件編號 s3553LQ｜信義房屋</div>
+        <div class="prop-title"><a href="https://www.hbhousing.com.tw/detail?sn=s3553LQ" target="_blank">美術館成家質感三房</a></div>
+        <div class="prop-addr">📍 高雄市鼓山區美術東七街</div>
+        <div class="prop-desc">美術特區環境清幽，近美術館園區，住戶單純居家首選，大樓管理嚴謹</div>
+        <div class="prop-specs">
+          <span class="spec">大樓</span>
+          <span class="spec">3房2廳2衛</span>
+          <span class="spec">3樓／15樓</span>
+          <span class="spec">37.83坪</span>
+          <span class="spec age">屋齡 20.4年</span>
+          <span class="spec mrt">🚇 聯合醫院 811m</span>
+        </div>
+        <div class="prop-tags">
+          <span class="ptag">近學校</span>
+          <span class="ptag">近公園</span>
+          <span class="ptag">近市場</span>
+        </div>
+      </div>
+      <div class="prop-right">
+        <div>
+          <div class="price-main">1,500<span class="price-unit"> 萬</span></div>
+          <div class="price-per">約 39.7萬／坪</div>
+        </div>
+        <div class="prop-btns">
+          <a class="btn-detail" href="https://www.hbhousing.com.tw/detail?sn=s3553LQ" target="_blank">查看物件</a>
+          <a class="btn-appt" href="https://line.me/ti/p/~@jialing" target="_blank">預約帶看</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Property 2 -->
+  <div class="prop-card">
+    <div class="prop-inner">
+      <div class="prop-img-wrap">
+        <img src="https://img.great-home.com.tw/pictures/H222%2fH222ZB06702a.jpg?1782703940" alt="美術館高樓景觀三房" loading="lazy">
+        <span class="badge-drop">↓ 降價 8.83%</span>
+      </div>
+      <div class="prop-body">
+        <div class="prop-id">物件編號 gZB06702｜大家房屋</div>
+        <div class="prop-title"><a href="https://www.hbhousing.com.tw/detail?sn=gZB06702" target="_blank">美術館高樓景觀三房</a></div>
+        <div class="prop-addr">📍 高雄市鼓山區逢甲路</div>
+        <div class="prop-desc">高美館高樓景觀三房，稀有釋出，美術館景觀盡收眼簾</div>
+        <div class="prop-specs">
+          <span class="spec">大樓</span>
+          <span class="spec">3房2廳2衛</span>
+          <span class="spec">11樓／14樓</span>
+          <span class="spec">45.13坪</span>
+          <span class="spec age">屋齡 24.4年</span>
+          <span class="spec mrt">🚇 內惟藝術中心 992m</span>
+        </div>
+        <div class="prop-tags">
+          <span class="ptag">近學校</span>
+          <span class="ptag">近公園</span>
+          <span class="ptag drop">↓ 降價物件</span>
+          <span class="ptag">近市場</span>
+        </div>
+      </div>
+      <div class="prop-right">
+        <div>
+          <div class="price-orig">原價 1,698 萬</div>
+          <div class="price-main">1,548<span class="price-unit"> 萬</span></div>
+          <div class="price-per">約 34.3萬／坪</div>
+        </div>
+        <div class="prop-btns">
+          <a class="btn-detail" href="https://www.hbhousing.com.tw/detail?sn=gZB06702" target="_blank">查看物件</a>
+          <a class="btn-appt" href="https://line.me/ti/p/~@jialing" target="_blank">預約帶看</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Property 3 -->
+  <div class="prop-card">
+    <div class="prop-inner">
+      <div class="prop-img-wrap">
+        <img src="https://res.sinyi.com.tw/buy/8265PH/bigimg/A.JPG" alt="巨蛋首選高樓寬敞四房平車" loading="lazy">
+      </div>
+      <div class="prop-body">
+        <div class="prop-id">物件編號 s8265PH｜信義房屋</div>
+        <div class="prop-title"><a href="https://www.hbhousing.com.tw/detail?sn=s8265PH" target="_blank">巨蛋首選高樓寬敞四房平車</a></div>
+        <div class="prop-addr">📍 高雄市鼓山區文忠路</div>
+        <div class="prop-desc">明星學區，文風鼎盛，鄰近R14巨蛋捷運站，一層二戶住戶單純</div>
+        <div class="prop-specs">
+          <span class="spec">大樓</span>
+          <span class="spec">4房2廳2衛</span>
+          <span class="spec">10樓／19樓</span>
+          <span class="spec">57.18坪</span>
+          <span class="spec age">屋齡 34.9年</span>
+          <span class="spec parking">🚗 平面車位</span>
+          <span class="spec mrt">🚇 巨蛋 619m</span>
+        </div>
+        <div class="prop-tags">
+          <span class="ptag">近學校</span>
+          <span class="ptag">近公園</span>
+          <span class="ptag">近市場</span>
+        </div>
+      </div>
+      <div class="prop-right">
+        <div>
+          <div class="price-main">1,550<span class="price-unit"> 萬</span></div>
+          <div class="price-per">約 27.1萬／坪</div>
+        </div>
+        <div class="prop-btns">
+          <a class="btn-detail" href="https://www.hbhousing.com.tw/detail?sn=s8265PH" target="_blank">查看物件</a>
+          <a class="btn-appt" href="https://line.me/ti/p/~@jialing" target="_blank">預約帶看</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Property 4 -->
+  <div class="prop-card">
+    <div class="prop-inner">
+      <div class="prop-img-wrap">
+        <img src="https://res.sinyi.com.tw/buy/3763KM/bigimg/A.JPG" alt="美術白天鵝高樓Ｄ９" loading="lazy">
+        <span class="badge-new">新成屋</span>
+      </div>
+      <div class="prop-body">
+        <div class="prop-id">物件編號 s3763KM｜信義房屋</div>
+        <div class="prop-title"><a href="https://www.hbhousing.com.tw/detail?sn=s3763KM" target="_blank">美術白天鵝高樓Ｄ９</a></div>
+        <div class="prop-addr">📍 高雄市鼓山區美術東四路</div>
+        <div class="prop-desc">全棟淨水3M軟水系統，社區全戶配平面車位，物業管理完善</div>
+        <div class="prop-specs">
+          <span class="spec">大樓</span>
+          <span class="spec">1房2廳2衛</span>
+          <span class="spec">15樓／24樓</span>
+          <span class="spec">38.28坪</span>
+          <span class="spec age">屋齡 2.8年</span>
+          <span class="spec parking">🚗 平面車位</span>
+        </div>
+        <div class="prop-tags">
+          <span class="ptag">近公園</span>
+        </div>
+      </div>
+      <div class="prop-right">
+        <div>
+          <div class="price-main">1,560<span class="price-unit"> 萬</span></div>
+          <div class="price-per">約 40.7萬／坪</div>
+        </div>
+        <div class="prop-btns">
+          <a class="btn-detail" href="https://www.hbhousing.com.tw/detail?sn=s3763KM" target="_blank">查看物件</a>
+          <a class="btn-appt" href="https://line.me/ti/p/~@jialing" target="_blank">預約帶看</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Property 5 -->
+  <div class="prop-card">
+    <div class="prop-inner">
+      <div class="prop-img-wrap">
+        <img src="https://img.hbhousing.com.tw/pictures/D496%2fD496KS194773a.jpg?1782703940" alt="農十六公園三房" loading="lazy">
+      </div>
+      <div class="prop-body">
+        <div class="prop-id">物件編號 KS194773｜住商</div>
+        <div class="prop-title"><a href="https://www.hbhousing.com.tw/detail?sn=KS194773" target="_blank">農十六公園｜輕軌｜樹海三房</a></div>
+        <div class="prop-addr">📍 高雄市鼓山區龍勝路</div>
+        <div class="prop-desc">農十六稀有公園首排，可自行設計喜歡的裝潢</div>
+        <div class="prop-specs">
+          <span class="spec">大樓</span>
+          <span class="spec">3房2廳2衛</span>
+          <span class="spec">3樓／14樓</span>
+          <span class="spec">36.48坪</span>
+          <span class="spec age">屋齡 21.6年</span>
+          <span class="spec mrt">🚇 龍華國小 132m</span>
+        </div>
+        <div class="prop-tags">
+          <span class="ptag">近學校</span>
+          <span class="ptag">近公園</span>
+          <span class="ptag">近市場</span>
+        </div>
+      </div>
+      <div class="prop-right">
+        <div>
+          <div class="price-main">1,589<span class="price-unit"> 萬</span></div>
+          <div class="price-per">約 43.5萬／坪</div>
+        </div>
+        <div class="prop-btns">
+          <a class="btn-detail" href="https://www.hbhousing.com.tw/detail?sn=KS194773" target="_blank">查看物件</a>
+          <a class="btn-appt" href="https://line.me/ti/p/~@jialing" target="_blank">預約帶看</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Property 6 -->
+  <div class="prop-card">
+    <div class="prop-inner">
+      <div class="prop-img-wrap">
+        <img src="https://img.hbhousing.com.tw/pictures/D177%2fD177KS195376a.jpg?1782703940" alt="美術館特區三面採光三房車位" loading="lazy">
+      </div>
+      <div class="prop-body">
+        <div class="prop-id">物件編號 KS195376｜住商</div>
+        <div class="prop-title"><a href="https://www.hbhousing.com.tw/detail?sn=KS195376" target="_blank">美術館特區三面採光三房車位</a></div>
+        <div class="prop-addr">📍 高雄市鼓山區美術北三路</div>
+        <div class="prop-desc">三面採光，正三房室內大坪數，主衛開窗，距台鐵內惟站步行6分鐘</div>
+        <div class="prop-specs">
+          <span class="spec">大樓</span>
+          <span class="spec">3房2廳2衛</span>
+          <span class="spec">15樓／15樓（頂樓）</span>
+          <span class="spec">41.84坪</span>
+          <span class="spec age">屋齡 19.7年</span>
+          <span class="spec parking">🚗 車位</span>
+        </div>
+        <div class="prop-tags">
+          <span class="ptag">近學校</span>
+          <span class="ptag">近公園</span>
+          <span class="ptag">近市場</span>
+        </div>
+      </div>
+      <div class="prop-right">
+        <div>
+          <div class="price-main">1,598<span class="price-unit"> 萬</span></div>
+          <div class="price-per">約 38.2萬／坪</div>
+        </div>
+        <div class="prop-btns">
+          <a class="btn-detail" href="https://www.hbhousing.com.tw/detail?sn=KS195376" target="_blank">查看物件</a>
+          <a class="btn-appt" href="https://line.me/ti/p/~@jialing" target="_blank">預約帶看</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Property 7 -->
+  <div class="prop-card">
+    <div class="prop-inner">
+      <div class="prop-img-wrap">
+        <img src="https://res.sinyi.com.tw/buy/2126DL/bigimg/A.JPG" alt="馬爾地夫採光三房車位" loading="lazy">
+      </div>
+      <div class="prop-body">
+        <div class="prop-id">物件編號 s2126DL｜信義房屋</div>
+        <div class="prop-title"><a href="https://www.hbhousing.com.tw/detail?sn=s2126DL" target="_blank">馬爾地夫採光３房車位</a></div>
+        <div class="prop-addr">📍 高雄市鼓山區美術北三路</div>
+        <div class="prop-desc">社區維護管理佳，屋主惜屋屋況良好，高樓層通風採光佳，優質學區</div>
+        <div class="prop-specs">
+          <span class="spec">大樓</span>
+          <span class="spec">3房2廳2衛</span>
+          <span class="spec">15樓／15樓（頂樓）</span>
+          <span class="spec">41.84坪</span>
+          <span class="spec age">屋齡 19.7年</span>
+          <span class="spec parking">🚗 車位</span>
+          <span class="spec mrt">🚇 美術館 929m</span>
+        </div>
+        <div class="prop-tags">
+          <span class="ptag">近學校</span>
+          <span class="ptag">近公園</span>
+          <span class="ptag">近市場</span>
+        </div>
+      </div>
+      <div class="prop-right">
+        <div>
+          <div class="price-main">1,598<span class="price-unit"> 萬</span></div>
+          <div class="price-per">約 38.2萬／坪</div>
+        </div>
+        <div class="prop-btns">
+          <a class="btn-detail" href="https://www.hbhousing.com.tw/detail?sn=s2126DL" target="_blank">查看物件</a>
+          <a class="btn-appt" href="https://line.me/ti/p/~@jialing" target="_blank">預約帶看</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Property 8 -->
+  <div class="prop-card">
+    <div class="prop-inner">
+      <div class="prop-img-wrap">
+        <img src="https://res.sinyi.com.tw/buy/47184K/bigimg/A.JPG" alt="近美術館山景3+1附平車" loading="lazy">
+      </div>
+      <div class="prop-body">
+        <div class="prop-id">物件編號 s47184K｜信義房屋</div>
+        <div class="prop-title"><a href="https://www.hbhousing.com.tw/detail?sn=s47184K" target="_blank">近美術館山景３＋１附平車</a></div>
+        <div class="prop-addr">📍 高雄市鼓山區厚德路</div>
+        <div class="prop-desc">室內大空間方正好規劃，三面採光通風視野優，附B1大平面車位</div>
+        <div class="prop-specs">
+          <span class="spec">大樓</span>
+          <span class="spec">3+1房2廳2衛</span>
+          <span class="spec">5樓／14樓</span>
+          <span class="spec">57.98坪</span>
+          <span class="spec age">屋齡 22.5年</span>
+          <span class="spec parking">🚗 平面車位</span>
+          <span class="spec mrt">🚇 馬卡道 296m</span>
+        </div>
+        <div class="prop-tags">
+          <span class="ptag">近學校</span>
+          <span class="ptag">近市場</span>
+        </div>
+      </div>
+      <div class="prop-right">
+        <div>
+          <div class="price-main">1,598<span class="price-unit"> 萬</span></div>
+          <div class="price-per">約 27.6萬／坪</div>
+        </div>
+        <div class="prop-btns">
+          <a class="btn-detail" href="https://www.hbhousing.com.tw/detail?sn=s47184K" target="_blank">查看物件</a>
+          <a class="btn-appt" href="https://line.me/ti/p/~@jialing" target="_blank">預約帶看</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Property 9 -->
+  <div class="prop-card">
+    <div class="prop-inner">
+      <div class="prop-img-wrap">
+        <img src="https://res.sinyi.com.tw/buy/9333XN/bigimg/A.JPG" alt="美術館高樓景觀邊間平車" loading="lazy">
+        <span class="badge-new">新成屋</span>
+      </div>
+      <div class="prop-body">
+        <div class="prop-id">物件編號 s9333XN｜信義房屋</div>
+        <div class="prop-title"><a href="https://www.hbhousing.com.tw/detail?sn=s9333XN" target="_blank">美術館高樓景觀邊間平車</a></div>
+        <div class="prop-addr">📍 高雄市鼓山區美術東四路</div>
+        <div class="prop-desc">高樓邊間三面採光，前後陽台通風佳，現況無隔間好規劃，戶型稀有</div>
+        <div class="prop-specs">
+          <span class="spec">大樓</span>
+          <span class="spec">2廳2衛</span>
+          <span class="spec">15樓／24樓</span>
+          <span class="spec">39.18坪</span>
+          <span class="spec age">屋齡 2.8年</span>
+          <span class="spec parking">🚗 平面車位</span>
+        </div>
+        <div class="prop-tags">
+          <span class="ptag">近學校</span>
+          <span class="ptag">近公園</span>
+          <span class="ptag">近市場</span>
+        </div>
+      </div>
+      <div class="prop-right">
+        <div>
+          <div class="price-main">1,598<span class="price-unit"> 萬</span></div>
+          <div class="price-per">約 40.8萬／坪</div>
+        </div>
+        <div class="prop-btns">
+          <a class="btn-detail" href="https://www.hbhousing.com.tw/detail?sn=s9333XN" target="_blank">查看物件</a>
+          <a class="btn-appt" href="https://line.me/ti/p/~@jialing" target="_blank">預約帶看</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Property 10 -->
+  <div class="prop-card">
+    <div class="prop-inner">
+      <div class="prop-img-wrap">
+        <img src="https://img.hbhousing.com.tw/pictures/D258%2fD258KS191932a.jpg?1782703940" alt="美術京城康橋3房平車" loading="lazy">
+        <span class="badge-drop">↓ 降價 2.96%</span>
+      </div>
+      <div class="prop-body">
+        <div class="prop-id">物件編號 KS191932｜住商</div>
+        <div class="prop-title"><a href="https://www.hbhousing.com.tw/detail?sn=KS191932" target="_blank">美術京城康橋陽台進出3房平車</a></div>
+        <div class="prop-addr">📍 高雄市鼓山區美術東二路</div>
+        <div class="prop-desc">緊鄰青海商圈，寶雅星巴克全聯及醫院俱全，近願景橋，5分鐘即達輕軌站</div>
+        <div class="prop-specs">
+          <span class="spec">大樓</span>
+          <span class="spec">3房2廳2衛</span>
+          <span class="spec">6樓／14樓</span>
+          <span class="spec">44.92坪</span>
+          <span class="spec age">屋齡 21.5年</span>
+          <span class="spec parking">🚗 平面車位</span>
+          <span class="spec mrt">🚇 美術館 282m</span>
+        </div>
+        <div class="prop-tags">
+          <span class="ptag">近學校</span>
+          <span class="ptag">近公園</span>
+          <span class="ptag drop">↓ 降價物件</span>
+          <span class="ptag">近市場</span>
+          <span class="ptag rec">⭐ 店長推薦</span>
+        </div>
+      </div>
+      <div class="prop-right">
+        <div>
+          <div class="price-orig">原價 1,688 萬</div>
+          <div class="price-main">1,638<span class="price-unit"> 萬</span></div>
+          <div class="price-per">約 36.5萬／坪</div>
+        </div>
+        <div class="prop-btns">
+          <a class="btn-detail" href="https://www.hbhousing.com.tw/detail?sn=KS191932" target="_blank">查看物件</a>
+          <a class="btn-appt" href="https://line.me/ti/p/~@jialing" target="_blank">預約帶看</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer CTA -->
+  <div class="footer-cta">
+    <h3>📞 有興趣的物件？歡迎預約帶看或直接聯絡家綸</h3>
+    <div class="cta-btns">
+      <a class="cta-btn line" href="https://line.me/ti/p/~@jialing" target="_blank">💬 LINE 聯絡家綸</a>
+      <a class="cta-btn tel" href="tel:0900000000">📞 電話預約</a>
+    </div>
+  </div>
+
+</div>
+
+<!-- Footer -->
+<div class="footer">
+  <p><strong>愛家的綸｜張家綸</strong></p>
+  <p style="margin-top:6px;">住商不動產 左營崇德加盟店｜<a href="tel:0900000000">0900-000-000</a>｜<a href="https://line.me/ti/p/~@jialing" target="_blank">LINE @jialing</a></p>
+  <p style="margin-top:10px; font-size:0.72rem; color:#777;">資料來源：住商不動產房屋網｜物件資訊以現場實際狀況為準｜本頁面由系統自動整理，僅供參考</p>
+  <p style="margin-top:6px; font-size:0.72rem; color:#777;">製作日期：2026/06/29｜有效期限：2026/07/09</p>
+  <p style="margin-top:6px; font-size:0.72rem; color:#777;">© 2026 愛家的綸. All rights reserved.</p>
+</div>
+
+<script>
+(function(){
+  var expiry = new Date('2026-07-09T23:59:59');
+  if(new Date() > expiry){
+    window.location.href = 'https://findingsweethomekh.com';
+  }
+})();
+</script>
+
+</body>
+</html>
