@@ -16,42 +16,65 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Fetch TWSE prices
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install yfinance requests --quiet
+
+      - name: Fetch Taiwan stock prices
         run: |
-          # Try TWSE Open API with browser-like headers
-          curl -sf --max-time 60 --compressed \
-            -H "Accept: application/json, */*" \
-            -H "User-Agent: Mozilla/5.0 (compatible; GitHub-Actions)" \
-            "https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_AVG_ALL" \
-            -o /tmp/twse_raw.json || true
+          python3 << 'PYEOF'
+          import yfinance as yf
+          import json, sys
+          from datetime import datetime
 
-          node -e "
-            const fs = require('fs');
-            let raw = [];
-            try {
-              const text = fs.readFileSync('/tmp/twse_raw.json', 'utf8');
-              const parsed = JSON.parse(text);
-              raw = Array.isArray(parsed) ? parsed : [];
-            } catch(e) {
-              console.log('TWSE parse failed:', e.message.slice(0,80));
-            }
+          # Top 200 TSE/OTC stocks by market cap + ETFs
+          SYMBOLS = [
+            "0050","0051","0052","0053","0054","0055","0056","006208","00646","00878","00900",
+            "1101","1102","1216","1301","1303","1326","1402","1590","2002","2105","2207",
+            "2301","2303","2308","2317","2324","2325","2327","2330","2331","2337","2345",
+            "2347","2354","2356","2357","2360","2379","2382","2383","2385","2392","2395",
+            "2408","2409","2412","2454","2474","2484","2492","2498","2511","2545","2603",
+            "2609","2610","2615","2618","2633","2801","2823","2880","2881","2882","2883",
+            "2884","2885","2886","2887","2888","2890","2891","2892","2912","3008","3017",
+            "3034","3045","3231","3443","3532","3702","4904","4938","5871","5876","5880",
+            "6415","6505","6770","8046","9910"
+          ]
 
-            const out = {};
-            raw.forEach(r => {
-              const p = parseFloat(r.ClosingPrice);
-              if (r.Code && !isNaN(p)) out[r.Code] = { price: p, name: r.Name || r.Code };
-            });
+          out = {}
+          tickers = [s + ".TW" for s in SYMBOLS] + [s + ".TWO" for s in ["6415","3231","3443","3532","3702","4938"]]
 
-            // If TWSE returned nothing, keep existing prices.json intact
-            if (Object.keys(out).length === 0) {
-              console.log('No prices fetched, keeping existing file');
-              process.exit(0);
-            }
+          try:
+            data = yf.download(tickers, period="2d", auto_adjust=True, progress=False, threads=True)
+            close = data["Close"] if "Close" in data else data.get("close", None)
+            if close is not None:
+              for col in close.columns:
+                code = col.replace(".TW","").replace(".TWO","")
+                series = close[col].dropna()
+                if not series.empty:
+                  price = float(series.iloc[-1])
+                  out[code] = {"price": round(price, 2), "name": code}
+          except Exception as e:
+            print(f"Batch failed: {e}, trying individually", flush=True)
+            for sym in SYMBOLS[:20]:
+              try:
+                t = yf.Ticker(sym + ".TW")
+                h = t.history(period="2d")
+                if not h.empty:
+                  out[sym] = {"price": round(float(h["Close"].iloc[-1]), 2), "name": sym}
+              except: pass
 
-            const result = { updatedAt: new Date().toISOString(), prices: out };
-            fs.writeFileSync('investment-os/prices.json', JSON.stringify(result));
-            console.log('Wrote', Object.keys(out).length, 'prices');
-          "
+          if not out:
+            print("No prices fetched, keeping existing file")
+            sys.exit(0)
+
+          result = {"updatedAt": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"), "prices": out}
+          with open("investment-os/prices.json", "w") as f:
+            json.dump(result, f)
+          print(f"Wrote {len(out)} prices")
+          PYEOF
 
       - name: Commit prices
         run: |
