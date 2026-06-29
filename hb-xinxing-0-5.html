@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>新興區精選物件 屋齡0~5年 大樓 — 愛家的綸</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Noto Sans TC', '微軟正黑體', sans-serif; background: #f7f3ed; color: #2c2c2c; }
+
+/* Hero */
+.hero { display: flex; min-height: 180px; background: #f7f3ed; overflow: hidden; border-bottom: 3px solid #3d6b4f; }
+.hero-left { flex: 1; padding: 32px 28px; display: flex; flex-direction: column; justify-content: center; gap: 12px; }
+.hero-logo { width: 72px; }
+.hero-tagline { font-size: 1.45rem; font-weight: 700; color: #2c2c2c; line-height: 1.6; }
+.hero-sub { font-size: 0.86rem; color: #5a5a5a; line-height: 1.9; }
+.hero-right { width: 280px; min-width: 180px; overflow: hidden; background: #3d6b4f; display: flex; align-items: center; justify-content: center; }
+.hero-right .badge { text-align: center; color: #fff; padding: 20px; }
+.hero-right .badge-num { font-size: 3rem; font-weight: 700; line-height: 1; }
+.hero-right .badge-label { font-size: 0.9rem; margin-top: 6px; opacity: 0.85; }
+
+/* Agent bar */
+.agent-bar { background: #3d6b4f; color: #fff; padding: 11px 24px; display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.agent-bar .name { font-weight: 700; font-size: 0.98rem; }
+.agent-bar .info { font-size: 0.8rem; opacity: 0.9; }
+.agent-bar a { color: #b8dfc8; text-decoration: none; font-size: 0.8rem; }
+.agent-bar a:hover { color: #fff; }
+
+/* Filter summary */
+.filter-bar { background: #fff; border-bottom: 1px solid #e5ddd4; padding: 12px 20px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.filter-bar .label { font-size: 0.8rem; color: #888; margin-right: 4px; }
+.ftag { background: #f0ebe3; border: 1px solid #d4c9b8; color: #4a3a2a; font-size: 0.78rem; padding: 3px 12px; border-radius: 20px; }
+.ftag.green { background: #e8f4ed; border-color: #a8ccb5; color: #2d5a3d; }
+.result-count { margin-left: auto; font-size: 0.82rem; color: #666; }
+.result-count strong { color: #c0392b; font-size: 1rem; }
+
+/* Main container */
+.main { max-width: 860px; margin: 24px auto; padding: 0 14px 40px; }
+
+/* Property card */
+.prop-card { background: #fff; border-radius: 10px; border: 1px solid #e5ddd4; margin-bottom: 16px; overflow: hidden; transition: box-shadow 0.2s, border-color 0.2s; }
+.prop-card:hover { box-shadow: 0 4px 18px rgba(61,107,79,0.13); border-color: #3d6b4f; }
+
+.prop-inner { display: flex; gap: 0; }
+.prop-img-wrap { width: 160px; min-width: 160px; position: relative; overflow: hidden; }
+.prop-img-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; min-height: 140px; }
+.badge-drop { position: absolute; top: 8px; left: 8px; background: #c0392b; color: #fff; font-size: 0.7rem; font-weight: 700; padding: 3px 8px; border-radius: 4px; }
+.badge-new { position: absolute; top: 8px; left: 8px; background: #3d6b4f; color: #fff; font-size: 0.7rem; font-weight: 700; padding: 3px 8px; border-radius: 4px; }
+
+.prop-body { flex: 1; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
+.prop-id { font-size: 0.7rem; color: #aaa; }
+.prop-title { font-size: 1rem; font-weight: 700; color: #2c2c2c; line-height: 1.4; }
+.prop-addr { font-size: 0.8rem; color: #888; }
+.prop-desc { font-size: 0.78rem; color: #666; line-height: 1.6; border-left: 3px solid #e0d8cc; padding-left: 8px; margin: 2px 0; }
+
+.prop-specs { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 2px; }
+.spec { background: #f0ebe3; font-size: 0.73rem; padding: 2px 9px; border-radius: 4px; color: #5a4a38; }
+.spec.parking { background: #e8f4ed; color: #2d5a3d; border: 1px solid #a8ccb5; }
+.spec.age { background: #fdf4e3; color: #7a5800; }
+.spec.mrt { background: #e8eef8; color: #2a3d6a; }
+
+.prop-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.ptag { font-size: 0.7rem; padding: 2px 8px; border-radius: 12px; border: 1px solid #d4d4d4; color: #666; }
+.ptag.drop { border-color: #f5a0a0; color: #c0392b; background: #fff5f5; }
+.ptag.rec { border-color: #a8ccb5; color: #2d5a3d; background: #e8f4ed; }
+
+.prop-right { padding: 14px 16px; min-width: 120px; display: flex; flex-direction: column; align-items: flex-end; justify-content: space-between; border-left: 1px solid #f0ebe3; }
+.price-orig { font-size: 0.75rem; color: #bbb; text-decoration: line-through; text-align: right; }
+.price-main { font-size: 1.25rem; font-weight: 700; color: #c0392b; text-align: right; white-space: nowrap; }
+.price-unit { font-size: 0.75rem; color: #888; }
+.price-per { font-size: 0.72rem; color: #aaa; text-align: right; margin-top: 2px; }
+.prop-btns { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.btn-appt { display: block; background: #06C755; color: #fff; font-size: 0.72rem; font-weight: 700; padding: 6px 12px; border-radius: 5px; text-decoration: none; text-align: center; }
+.btn-appt:hover { background: #05a847; }
+
+/* Section header */
+.section-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 2px solid #3d6b4f; }
+.section-header h2 { font-size: 1.05rem; font-weight: 700; color: #3d6b4f; }
+.section-header .sub { font-size: 0.82rem; color: #888; }
+
+/* Footer CTA */
+.footer-cta { background: #fff; border: 1px solid #e5ddd4; border-radius: 10px; padding: 20px 20px; margin-bottom: 20px; text-align: center; }
+.footer-cta h3 { font-size: 1rem; font-weight: 700; color: #3d6b4f; margin-bottom: 12px; }
+.cta-btns { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.qr-wrap { margin-top: 18px; display: inline-block; }
+.qr-wrap img { width: 130px; height: 130px; border: 1px solid #e0d8cc; border-radius: 8px; padding: 6px; background: #fff; display: block; margin: 0 auto; }
+.qr-label { font-size: 0.75rem; color: #888; margin-top: 6px; }
+.cta-btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px; border-radius: 8px; font-size: 0.88rem; font-weight: 700; text-decoration: none; }
+.cta-btn.line { background: #06C755; color: #fff; }
+.cta-btn.tel { background: #3d6b4f; color: #fff; }
+.cta-btn.line:hover { background: #05a847; }
+.cta-btn.tel:hover { background: #2f5440; }
+
+/* Footer */
+.footer { background: #2c2c2c; color: #aaa; text-align: center; padding: 24px 16px; font-size: 0.8rem; }
+.footer strong { color: #fff; }
+.footer a { color: #b8dfc8; text-decoration: none; }
+
+/* Mobile */
+@media(max-width: 620px) {
+  .hero-right { display: none; }
+  .prop-inner { flex-direction: column; }
+  .prop-img-wrap { width: 100%; min-height: 200px; }
+  .prop-right { flex-direction: row; align-items: center; border-left: none; border-top: 1px solid #f0ebe3; padding: 12px 14px; }
+  .prop-btns { flex-direction: row; margin-top: 0; }
+  .price-orig, .price-per { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- Hero -->
+<div class="hero">
+  <div class="hero-left">
+    <img src="icon-192.png" alt="愛家的綸" class="hero-logo" onerror="this.style.display='none'">
+    <div class="hero-tagline">新興區精選物件<br>為您整理好了 ✦</div>
+    <div class="hero-sub">
+      住商左營崇德加盟店 家綸<br>
+      以下為本次篩選條件的符合物件，歡迎預約帶看。
+    </div>
+  </div>
+  <div class="hero-right">
+    <div class="badge">
+      <div class="badge-num">10</div>
+      <div class="badge-label">筆精選物件<br>新興區大樓</div>
+    </div>
+  </div>
+</div>
+
+<!-- Agent bar -->
+<div class="agent-bar">
+  <span class="name">🏠 張家綸</span>
+  <span class="info">住商左營崇德加盟店</span>
+  <a href="tel:0987860149">📞 預約帶看</a>
+  <a href="https://line.me/R/ti/p/@898jvoyx" target="_blank">💬 LINE 聯絡</a>
+</div>
+
+<!-- Filter summary -->
+<div class="filter-bar">
+  <span class="label">搜尋條件</span>
+  <span class="ftag green">高雄市新興區</span>
+  <span class="ftag green">大樓（11樓以上）</span>
+  <span class="ftag">屋齡 0~5年</span>
+  <span class="result-count">共 <strong>10</strong> 筆物件</span>
+</div>
+
+<!-- Main -->
+<div class="main">
+
+  <div class="section-header">
+    <h2>🏢 新興區精選物件</h2>
+    <span class="sub">依價格由低到高排列</span>
+  </div>
+
+  <!-- Property 1 -->
+  <div class="prop-card">
+    <div class="prop-inner">
+      <div class="prop-img-wrap">
+        <img src="https://img.hbhousing.com.tw/pictures/B226%2fB226VS04211a.jpg" alt="近捷運站時尚帝寶景觀1+1房" loading="lazy">
+        <span class="badge-new">新成屋</span>
+      </div>
+      <div class="prop-body">
+        <div class="prop-title">近捷運站時尚帝寶景觀1+1房</div>
+        <div class="prop-id">物件編號 VS04211</div>
+        <div class="prop-addr">📍 高雄市新興區七賢一路</div>
+        <div class="prop-specs">
+          <span class="spec">大樓</span>
+          <span class="spec">1房1廳1衛</span>
+          <span class="spec">19樓／29樓</span>
+          <span class="spec">18.54坪</span>
+          <span class="spec age">屋齡 1.6年</span>
+          <span class="spec mrt">🚇 信義國小 393m</span>
+        </div>
+        <div class="prop-tags">
+          <span class="ptag">近學校</span>
+          <span class="ptag">近公園</span>
+        </div>
+      </div>
+      <div class="prop-right">
+        <div>
+          <div class="price-main">828<span class="price-unit"> 萬</span></div>
+          <div class="price-per">約 44.7萬／坪</div>
+        </div>
+        <div class="prop-btns">
+          <a class="btn-appt" href="https://line.me/R/ti/p/@898jvoyx" target="_blank">預約帶看</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Property 2 -->
+  <div class="prop-card">
+    <div class="prop-inner">
+      <div class="prop-img-wrap">
+        <img src="https://img.great-home.com.tw/pictures/K057%2fK057PB04636a.jpg" alt="六合商圈全新兩房文合苑" loading="lazy">
+        <span class="badge-new">新成屋</span>
+      </div>
+      <div class="prop-body">
+        <div class="prop-title">六合商圈全新兩房文合苑</div>
+        <div class="prop-id">物件編號 gPB04636</div>
+        <div class="prop-addr">📍 高雄市新興區七賢二路</div>
+        <div class="prop-specs">
+          <span class="spec">大樓</span>
+          <span class="spec">2房2廳1衛</span>
+          <span class="spec">5樓／15樓</span>
+          <span class="spec">20.33坪</span>
+          <span class="spec age">屋齡 1.1年</span>
+        </div>
+        <div class="prop-tags">
+          <span class="ptag">近學校</span>
+        </div>
+      </div>
+      <div class="prop-right">
+        <div>
+          <div class="price-main">898<span class="price-unit"> 萬</span></div>
+          <div class="price-per">約 44.2萬／坪</div>
+        </div>
+        <div class="prop-btns">
+          <a class="btn-appt" href="https://line.me/R/ti/p/@898jvoyx" target="_blank">預約帶看</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Property 3 -->
+  <div class="prop-card">
+    <div class="prop-inner">
+      <div class="prop-img-wrap">
+        <img src="https://img.hbhousing.com.tw/pictures/D258%2fD258KS195447a.jpg" alt="民生1號院高樓景觀２房捷運宅" loading="lazy">
+        <span class="badge-new">新成屋</span>
+      </div>
+      <div class="prop-body">
+        <div class="prop-title">民生1號院高樓景觀２房捷運宅</div>
+        <div class="prop-id">物件編號 KS195447</div>
+        <div class="prop-addr">📍 高雄市新興區中山一路</div>
+        <div class="prop-specs">
+          <span class="spec">大樓</span>
+          <span class="spec">2房1廳1衛</span>
+          <span class="spec">18樓／34樓</span>
+          <span class="spec">22.99坪</span>
+          <span class="spec age">屋齡 0.4年</span>
+          <span class="spec mrt">🚇 中央公園 153m</span>
+        </div>
+        <div class="prop-tags">
+          <span class="ptag">近學校</span>
+          <span class="ptag">近公園</span>
+          <span class="ptag">近市場</span>
+        </div>
+      </div>
+      <div class="prop-right">
+        <div>
+          <div class="price-main">1,000<span class="price-unit"> 萬</span></div>
+          <div class="price-per">約 43.5萬／坪</div>
+        </div>
+        <div class="prop-btns">
+          <a class="btn-appt" href="https://line.me/R/ti/p/@898jvoyx" target="_blank">預約帶看</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Property 4 -->
+  <div class="prop-card">
+    <div class="prop-inner">
+      <div class="prop-img-wrap">
+        <img src="https://img.hbhousing.com.tw/pictures/D496%2fD496KS195046a.jpg" alt="民生一號院｜B2邊間美宅附車位" loading="lazy">
+        <span class="badge-new">新成屋</span>
+      </div>
+      <div class="prop-body">
+        <div class="prop-title">民生一號院｜B2邊間美宅附車位</div>
+        <div class="prop-id">物件編號 KS195046</div>
+        <div class="prop-addr">📍 高雄市新興區中山一路</div>
+        <div class="prop-specs">
+          <span class="spec">大樓</span>
+          <span class="spec">1房1廳1衛</span>
+          <span class="spec">8樓／34樓</span>
+          <span class="spec">25.44坪</span>
+          <span class="spec age">屋齡 0.4年</span>
+          <span class="spec parking">🚗 車位（私有）</span>
+          <span class="spec mrt">🚇 中央公園 254m</span>
+        </div>
+        <div class="prop-tags">
+          <span class="ptag">近學校</span>
+          <span class="ptag">近公園</span>
+          <span class="ptag">近市場</span>
+        </div>
+      </div>
+      <div class="prop-right">
+        <div>
+          <div class="price-main">1,138<span class="price-unit"> 萬</span></div>
+          <div class="price-per">約 44.7萬／坪</div>
+        </div>
+        <div class="prop-btns">
+          <a class="btn-appt" href="https://line.me/R/ti/p/@898jvoyx" target="_blank">預約帶看</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Property 5 -->
+  <div class="prop-card">
+    <div class="prop-inner">
+      <div class="prop-img-wrap">
+        <img src="https://img.hbhousing.com.tw/pictures/D516%2fD516GS156203a.jpg" alt="眺望綠海捷運全新高樓層景觀2房" loading="lazy">
+        <span class="badge-new">新成屋</span>
+      </div>
+      <div class="prop-body">
+        <div class="prop-title">眺望綠海捷運全新高樓層景觀2房</div>
+        <div class="prop-id">物件編號 GS156203</div>
+        <div class="prop-addr">📍 高雄市新興區中山一路</div>
+        <div class="prop-specs">
+          <span class="spec">大樓</span>
+          <span class="spec">2房1廳1衛</span>
+          <span class="spec">22樓／34樓</span>
+          <span class="spec">26.14坪</span>
+          <span class="spec age">屋齡 0.4年</span>
+          <span class="spec mrt">🚇 中央公園 153m</span>
+        </div>
+        <div class="prop-tags">
+          <span class="ptag">近學校</span>
+          <span class="ptag">近公園</span>
+          <span class="ptag">近市場</span>
+        </div>
+      </div>
+      <div class="prop-right">
+        <div>
+          <div class="price-main">1,150<span class="price-unit"> 萬</span></div>
+          <div class="price-per">約 44.0萬／坪</div>
+        </div>
+        <div class="prop-btns">
+          <a class="btn-appt" href="https://line.me/R/ti/p/@898jvoyx" target="_blank">預約帶看</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Property 6 -->
+  <div class="prop-card">
+    <div class="prop-inner">
+      <div class="prop-img-wrap">
+        <img src="https://img.hbhousing.com.tw/pictures/D177%2fD177KS195048a.jpg" alt="中央公園民生1號院兩房車位" loading="lazy">
+        <span class="badge-new">新成屋</span>
+      </div>
+      <div class="prop-body">
+        <div class="prop-title">中央公園民生1號院兩房車位</div>
+        <div class="prop-id">物件編號 KS195048</div>
+        <div class="prop-addr">📍 高雄市新興區中山一路</div>
+        <div class="prop-specs">
+          <span class="spec">大樓</span>
+          <span class="spec">2房1廳1衛</span>
+          <span class="spec">4樓／34樓</span>
+          <span class="spec">33.06坪</span>
+          <span class="spec age">屋齡 0.4年</span>
+          <span class="spec parking">🚗 車位</span>
+          <span class="spec mrt">🚇 中央公園 153m</span>
+        </div>
+        <div class="prop-tags">
+          <span class="ptag">近學校</span>
+          <span class="ptag">近公園</span>
+          <span class="ptag">近市場</span>
+        </div>
+      </div>
+      <div class="prop-right">
+        <div>
+          <div class="price-main">1,188<span class="price-unit"> 萬</span></div>
+          <div class="price-per">約 35.9萬／坪</div>
+        </div>
+        <div class="prop-btns">
+          <a class="btn-appt" href="https://line.me/R/ti/p/@898jvoyx" target="_blank">預約帶看</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Property 7 -->
+  <div class="prop-card">
+    <div class="prop-inner">
+      <div class="prop-img-wrap">
+        <img src="https://img.hbhousing.com.tw/pictures/D157%2fD157SS71631a.jpg" alt="時尚帝寶高樓層景觀席" loading="lazy">
+        <span class="badge-new">新成屋</span>
+      </div>
+      <div class="prop-body">
+        <div class="prop-title">時尚帝寶高樓層景觀席</div>
+        <div class="prop-id">物件編號 SS71631</div>
+        <div class="prop-addr">📍 高雄市新興區七賢一路</div>
+        <div class="prop-specs">
+          <span class="spec">大樓</span>
+          <span class="spec">1房1廳1衛</span>
+          <span class="spec">23樓／29樓</span>
+          <span class="spec">27.45坪</span>
+          <span class="spec age">屋齡 1.6年</span>
+          <span class="spec mrt">🚇 信義國小 391m</span>
+        </div>
+        <div class="prop-tags">
+          <span class="ptag">近學校</span>
+          <span class="ptag">近公園</span>
+          <span class="ptag">近市場</span>
+        </div>
+      </div>
+      <div class="prop-right">
+        <div>
+          <div class="price-main">1,288<span class="price-unit"> 萬</span></div>
+          <div class="price-per">約 46.9萬／坪</div>
+        </div>
+        <div class="prop-btns">
+          <a class="btn-appt" href="https://line.me/R/ti/p/@898jvoyx" target="_blank">預約帶看</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Property 8 -->
+  <div class="prop-card">
+    <div class="prop-inner">
+      <div class="prop-img-wrap">
+        <img src="https://res.sinyi.com.tw/buy/9114DG/bigimg/A.JPG" alt="愛上海樂稀有釋出兩房平車" loading="lazy">
+        <span class="badge-new">新成屋</span>
+      </div>
+      <div class="prop-body">
+        <div class="prop-title">愛上海樂稀有釋出兩房平車</div>
+        <div class="prop-id">物件編號 s9114DG</div>
+        <div class="prop-addr">📍 高雄市新興區復興二路</div>
+        <div class="prop-specs">
+          <span class="spec">大樓</span>
+          <span class="spec">2房2廳2衛</span>
+          <span class="spec">10樓／15樓</span>
+          <span class="spec">32.63坪</span>
+          <span class="spec age">屋齡 4.4年</span>
+          <span class="spec parking">🚗 車位</span>
+          <span class="spec mrt">🚇 信義國小 608m</span>
+        </div>
+        <div class="prop-tags">
+          <span class="ptag">近公園</span>
+        </div>
+      </div>
+      <div class="prop-right">
+        <div>
+          <div class="price-main">1,350<span class="price-unit"> 萬</span></div>
+          <div class="price-per">約 41.4萬／坪</div>
+        </div>
+        <div class="prop-btns">
+          <a class="btn-appt" href="https://line.me/R/ti/p/@898jvoyx" target="_blank">預約帶看</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Property 9 -->
+  <div class="prop-card">
+    <div class="prop-inner">
+      <div class="prop-img-wrap">
+        <img src="https://img.hbhousing.com.tw/pictures/D457%2fD457PS117184a.jpg" alt="中央公園全新二房平移車位" loading="lazy">
+        <span class="badge-drop">↓ 降價 1.96%</span>
+      </div>
+      <div class="prop-body">
+        <div class="prop-title">中央公園全新二房平移車位</div>
+        <div class="prop-id">物件編號 PS117184</div>
+        <div class="prop-addr">📍 高雄市新興區中山一路</div>
+        <div class="prop-specs">
+          <span class="spec">大樓</span>
+          <span class="spec">2房2廳1衛</span>
+          <span class="spec">26樓／33樓</span>
+          <span class="spec">31.05坪</span>
+          <span class="spec age">屋齡 2.1年</span>
+          <span class="spec parking">🚗 車位</span>
+          <span class="spec mrt">🚇 中央公園 163m</span>
+        </div>
+        <div class="prop-tags">
+          <span class="ptag">近學校</span>
+          <span class="ptag">近公園</span>
+          <span class="ptag drop">↓ 降價物件</span>
+          <span class="ptag">近市場</span>
+        </div>
+      </div>
+      <div class="prop-right">
+        <div>
+          <div class="price-orig">原價 1,528 萬</div>
+          <div class="price-main">1,498<span class="price-unit"> 萬</span></div>
+          <div class="price-per">約 48.2萬／坪</div>
+        </div>
+        <div class="prop-btns">
+          <a class="btn-appt" href="https://line.me/R/ti/p/@898jvoyx" target="_blank">預約帶看</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Property 10 -->
+  <div class="prop-card">
+    <div class="prop-inner">
+      <div class="prop-img-wrap">
+        <img src="https://res.sinyi.com.tw/buy/4724GW/bigimg/A.JPG" alt="民生１號院美景三房平車" loading="lazy">
+        <span class="badge-new">新成屋</span>
+      </div>
+      <div class="prop-body">
+        <div class="prop-title">民生１號院美景三房平車</div>
+        <div class="prop-id">物件編號 s4724GW</div>
+        <div class="prop-addr">📍 高雄市新興區中山一路</div>
+        <div class="prop-specs">
+          <span class="spec">大樓</span>
+          <span class="spec">3房2廳2衛</span>
+          <span class="spec">20樓／34樓</span>
+          <span class="spec">50.3坪</span>
+          <span class="spec age">屋齡 0.4年</span>
+          <span class="spec parking">🚗 車位</span>
+          <span class="spec mrt">🚇 中央公園 203m</span>
+        </div>
+        <div class="prop-tags">
+          <span class="ptag">近公園</span>
+        </div>
+      </div>
+      <div class="prop-right">
+        <div>
+          <div class="price-main">1,998<span class="price-unit"> 萬</span></div>
+          <div class="price-per">約 39.7萬／坪</div>
+        </div>
+        <div class="prop-btns">
+          <a class="btn-appt" href="https://line.me/R/ti/p/@898jvoyx" target="_blank">預約帶看</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer CTA -->
+  <div class="footer-cta">
+    <h3>📞 有興趣的物件？歡迎預約帶看或直接聯絡家綸</h3>
+    <div class="cta-btns">
+      <a class="cta-btn line" href="https://line.me/R/ti/p/@898jvoyx" target="_blank">💬 LINE 聯絡家綸</a>
+      <a class="cta-btn tel" href="tel:0987860149">📞 電話預約</a>
+    </div>
+    <div class="qr-wrap">
+      <a href="https://findingsweethome860149-coder.github.io/buyer-match/card.html" target="_blank"><img src="data:image/png;base64,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" alt="家綸電子名片 QR Code"></a>
+      <div class="qr-label">👆 點我 ／ 掃描加入｜電子名片</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Footer -->
+<div class="footer">
+  <p><strong>愛家的綸｜張家綸</strong></p>
+  <p style="margin-top:6px;">住商不動產 左營崇德加盟店｜<a href="tel:0987860149">0987-860-149</a>｜<a href="https://line.me/R/ti/p/@898jvoyx" target="_blank">LINE @andrea773</a></p>
+  <p style="margin-top:4px; font-size:0.82rem;">永盛不動產有限公司｜經紀人：申永順｜(96) 高市字第00096號</p>
+  <p style="margin-top:10px; font-size:0.72rem; color:#777;">資料來源：住商不動產房屋網｜物件資訊以現場實際狀況為準｜本頁面由系統自動整理，僅供參考</p>
+  <p style="margin-top:6px; font-size:0.72rem; color:#777;">製作日期：2026/06/29｜有效期限：2026/07/09</p>
+  <p style="margin-top:6px; font-size:0.72rem; color:#777;">© 2026 愛家的綸. All rights reserved.</p>
+</div>
+
+<script>
+(function(){
+  var expiry = new Date('2026-07-09T23:59:59');
+  if(new Date() > expiry){
+    window.location.href = 'https://findingsweethomekh.com';
+  }
+})();
+</script>
+
+</body>
+</html>
