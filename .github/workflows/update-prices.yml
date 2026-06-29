@@ -18,18 +18,36 @@ jobs:
 
       - name: Fetch TWSE prices
         run: |
+          # Try TWSE Open API with browser-like headers
           curl -sf --max-time 20 \
+            -H "Accept: application/json" \
+            -H "User-Agent: Mozilla/5.0 (compatible; GitHub-Actions)" \
             "https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_AVG_ALL" \
-            -o /tmp/twse_raw.json || echo "[]" > /tmp/twse_raw.json
+            -o /tmp/twse_raw.json || true
 
           node -e "
             const fs = require('fs');
-            const raw = JSON.parse(fs.readFileSync('/tmp/twse_raw.json','utf8'));
+            let raw = [];
+            try {
+              const text = fs.readFileSync('/tmp/twse_raw.json', 'utf8');
+              const parsed = JSON.parse(text);
+              raw = Array.isArray(parsed) ? parsed : [];
+            } catch(e) {
+              console.log('TWSE parse failed:', e.message.slice(0,80));
+            }
+
             const out = {};
             raw.forEach(r => {
               const p = parseFloat(r.ClosingPrice);
               if (r.Code && !isNaN(p)) out[r.Code] = { price: p, name: r.Name || r.Code };
             });
+
+            // If TWSE returned nothing, keep existing prices.json intact
+            if (Object.keys(out).length === 0) {
+              console.log('No prices fetched, keeping existing file');
+              process.exit(0);
+            }
+
             const result = { updatedAt: new Date().toISOString(), prices: out };
             fs.writeFileSync('investment-os/prices.json', JSON.stringify(result));
             console.log('Wrote', Object.keys(out).length, 'prices');
