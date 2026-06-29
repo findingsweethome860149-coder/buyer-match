@@ -319,6 +319,8 @@ const DashboardModule = (() => {
               </div>
               <div style="font-size:12px;color:var(--muted);margin-top:2px">目標 $${w.targetPrice ? Utils.fmt(w.targetPrice, 2) : '—'}</div>
               ${diff !== null ? `<div style="font-size:12px;margin-top:2px" class="${diff <= 0 ? 'positive' : 'negative'}">${diff > 0 ? '+' : ''}${Utils.fmt(diff, 1)}%</div>` : ''}
+              <button class="btn-sm" style="margin-top:6px;background:var(--red);color:#fff;border-color:var(--red)"
+                onclick="event.stopPropagation();App.removeWatch('${w.id}')">移除</button>
             </div>
           </div>
         `;

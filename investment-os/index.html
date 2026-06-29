@@ -345,6 +345,7 @@
       <button class="btn btn-primary" style="flex:1" onclick="App.stockDetailBuy()">考慮買入</button>
       <button class="btn" style="flex:1;background:var(--surface2);color:var(--muted)" onclick="closeModal('modalStockDetail')">關閉</button>
     </div>
+    <button class="btn btn-danger" style="width:100%;margin-top:8px" onclick="closeModal('modalStockDetail');App.removeCurrentWatch()">從觀察清單移除</button>
     <p style="font-size:11px;color:var(--muted);text-align:center;margin-top:10px">AI 分析僅供參考，不構成投資建議。最終決策由你決定。</p>
   </div>
 </div>

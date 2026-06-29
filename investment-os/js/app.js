@@ -1309,6 +1309,10 @@ const App = (() => {
     if (wrap) wrap.style.display = 'none';
   }
 
+  function removeCurrentWatch() {
+    if (_detailWatchId) removeWatch(_detailWatchId);
+  }
+
   return {
     init,
     navigate,
@@ -1346,6 +1350,7 @@ const App = (() => {
     installPWA,
     openLicenseModal,
     submitLicenseKey,
+    removeCurrentWatch,
   };
 })();
 
