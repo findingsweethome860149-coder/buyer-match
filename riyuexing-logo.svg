@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 210" width="800" height="840">
+<polygon points="100.0,6.0 88.3,33.2 67.1,12.5 66.7,42.1 39.2,31.2 50.1,58.7 20.5,59.1 41.2,80.3 14.0,92.0 41.2,103.7 20.5,124.9 50.1,125.3 39.2,152.8 66.7,141.9 67.1,171.5 88.3,150.8 100.0,178.0 111.7,150.8 132.9,171.5 133.3,141.9 160.8,152.8 149.9,125.3 179.5,124.9 158.8,103.7 186.0,92.0 158.8,80.3 179.5,59.1 149.9,58.7 160.8,31.2 133.3,42.1 132.9,12.5 111.7,33.2" fill="#2b6cb8"/>
+<circle cx="100" cy="92" r="58" fill="#f5c11e"/>
+<circle cx="113" cy="80" r="45" fill="#e8912d"/>
+<circle cx="114" cy="79" r="42" fill="#d9dde2"/>
+<g transform="translate(136,136)">
+  <path d="M0,-34 L9.7,-12.6 L33,-10.5 L15.5,5.1 L20.4,28 L0,16.3 L-20.4,28 L-15.5,5.1 L-33,-10.5 L-9.7,-12.6 Z"
+        fill="#e87722" stroke="#ffffff" stroke-width="4" stroke-linejoin="round"/>
+</g>
+<text x="136" y="196" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif"
+      font-size="15" font-weight="bold" fill="#1a3a6b">since 1987</text>
+</svg>
