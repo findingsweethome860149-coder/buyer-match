@@ -21,6 +21,16 @@
     color:var(--ink);
     background:#cfd8dc;
   }
+  /* The document itself is literal "paper" and stays white, like a PDF
+     viewer's page — only the surrounding workbench chrome adapts. */
+  @media (prefers-color-scheme: dark){
+    body{ background:#14181b; }
+    .screen-note{ color:#90a4ae; }
+    .tag{ color:#78909c; }
+  }
+  :root[data-theme="dark"] body{ background:#14181b; }
+  :root[data-theme="dark"] .screen-note{ color:#90a4ae; }
+  :root[data-theme="light"] body{ background:#cfd8dc; }
   @page{ size:297mm 210mm landscape; margin:0; }
   @media print{
     body{ background:#fff; }
