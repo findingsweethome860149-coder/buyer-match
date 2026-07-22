@@ -8,10 +8,6 @@
     --silver-light:#E7E9EB;
     --white:#FFFFFF;
     --ink:#10151B;
-    --brass-a:#8A6A1E; --brass-b:#D9B54C;
-    --steel-a:#8C99A3; --steel-b:#E3E8EB;
-    --alum-a:#B7BDC2;  --alum-b:#F1F3F4;
-    --copper-a:#7A4326; --copper-b:#C97C4C;
 
     --page-bg:#F3F1EC;
     --page-fg:#1B1F24;
@@ -156,20 +152,18 @@
     flex-direction:column; justify-content:center; align-items:center;
     padding:0 calc(24/28*1cqw);
   }
-  .parts-rail{
-    display:flex; align-items:flex-end; justify-content:center;
-    gap:calc(56/28*1cqw);
-    width:100%;
+  .photo-placeholder{
+    width:88%; height:76%;
+    border:calc(1.5/28*1cqw) dashed rgba(57,67,77,.4);
+    border-radius:calc(6/28*1cqw);
+    background:rgba(57,67,77,.04);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:calc(12/28*1cqw);
   }
-  .part{ display:flex; flex-direction:column; align-items:center; gap:calc(10/28*1cqw); }
-  .part svg{ width:calc(96/28*1cqw); height:auto; filter:drop-shadow(0 calc(6/28*1cqw) calc(10/28*1cqw) rgba(20,30,40,.18)); }
-  .part-label{
-    font-size:calc(11/28*1cqw); font-weight:700; letter-spacing:.1em; text-transform:uppercase;
+  .photo-placeholder svg{ width:calc(48/28*1cqw); height:auto; }
+  .photo-placeholder-label{
+    font-size:calc(12/28*1cqw); font-weight:600; letter-spacing:.02em; text-align:center; line-height:1.5;
     color:var(--steel);
-  }
-  .shelf-line{
-    position:absolute; left:8%; right:8%; bottom:22%;
-    height:1px; background:linear-gradient(90deg, transparent, rgba(57,67,77,.35) 15%, rgba(57,67,77,.35) 85%, transparent);
   }
 
   /* ---- SPEC ZONE ---- */
@@ -218,7 +212,7 @@
   </div>
 
   <div class="frame-wrap">
-    <div class="banner" role="img" aria-label="RI YUE XING exhibition banner: logo at left, headline over a Swiss-type CNC lathe illustration, precision machined parts as the visual hero at center-right, capability specs at right, materials and slogan along the bottom strip.">
+    <div class="banner" role="img" aria-label="RI YUE XING exhibition banner: logo at left, headline over a Swiss-type CNC lathe illustration, a photography placeholder for precision machined parts as the visual hero at center-right, capability specs at right, materials and slogan along the bottom strip.">
 
       <div class="row">
         <!-- ZONE 1: LOGO -->
@@ -257,56 +251,13 @@
         <!-- ZONE 3: HERO PARTS -->
         <div class="zone-hero">
           <div class="content-band">
-            <div class="shelf-line"></div>
-            <div class="parts-rail">
-
-              <div class="part">
-                <svg viewBox="0 0 100 120" fill="none">
-                  <defs><linearGradient id="brassG" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0" stop-color="var(--brass-b)"/><stop offset="1" stop-color="var(--brass-a)"/>
-                  </linearGradient></defs>
-                  <polygon points="50,6 78,22 78,54 50,70 22,54 22,22" fill="url(#brassG)" stroke="#5C4413" stroke-width="1.5"/>
-                  <rect x="42" y="68" width="16" height="46" fill="url(#brassG)" stroke="#5C4413" stroke-width="1.5"/>
-                </svg>
-                <div class="part-label">Brass</div>
-              </div>
-
-              <div class="part">
-                <svg viewBox="0 0 100 120" fill="none">
-                  <defs><linearGradient id="steelG" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0" stop-color="var(--steel-b)"/><stop offset=".5" stop-color="var(--steel-a)"/><stop offset="1" stop-color="var(--steel-b)"/>
-                  </linearGradient></defs>
-                  <rect x="34" y="6" width="32" height="108" rx="6" fill="url(#steelG)" stroke="#5B6870" stroke-width="1.5"/>
-                  <line x1="34" y1="40" x2="66" y2="40" stroke="#5B6870" stroke-width="1"/>
-                  <line x1="34" y1="50" x2="66" y2="50" stroke="#5B6870" stroke-width="1"/>
-                  <line x1="34" y1="60" x2="66" y2="60" stroke="#5B6870" stroke-width="1"/>
-                </svg>
-                <div class="part-label">Stainless</div>
-              </div>
-
-              <div class="part">
-                <svg viewBox="0 0 100 120" fill="none">
-                  <defs><radialGradient id="alumG" cx=".35" cy=".35" r=".8">
-                    <stop offset="0" stop-color="var(--alum-b)"/><stop offset="1" stop-color="var(--alum-a)"/>
-                  </radialGradient></defs>
-                  <circle cx="50" cy="60" r="42" fill="url(#alumG)" stroke="#8C9298" stroke-width="1.5"/>
-                  <circle cx="50" cy="60" r="20" fill="#F3F1EC" stroke="#8C9298" stroke-width="1.5"/>
-                </svg>
-                <div class="part-label">Aluminum</div>
-              </div>
-
-              <div class="part">
-                <svg viewBox="0 0 100 120" fill="none">
-                  <defs><linearGradient id="copperG" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0" stop-color="var(--copper-b)"/><stop offset="1" stop-color="var(--copper-a)"/>
-                  </linearGradient></defs>
-                  <rect x="30" y="10" width="40" height="26" rx="3" fill="url(#copperG)" stroke="#5C331B" stroke-width="1.5"/>
-                  <rect x="38" y="36" width="24" height="30" fill="url(#copperG)" stroke="#5C331B" stroke-width="1.5"/>
-                  <rect x="30" y="66" width="40" height="26" rx="3" fill="url(#copperG)" stroke="#5C331B" stroke-width="1.5"/>
-                </svg>
-                <div class="part-label">Copper</div>
-              </div>
-
+            <div class="photo-placeholder">
+              <svg viewBox="0 0 48 48" fill="none">
+                <rect x="4" y="8" width="40" height="32" rx="2" stroke="#9AA3AC" stroke-width="2"/>
+                <circle cx="16" cy="18" r="4" stroke="#9AA3AC" stroke-width="2"/>
+                <path d="M4 34 L17 22 L27 30 L34 24 L44 32" stroke="#9AA3AC" stroke-width="2" fill="none"/>
+              </svg>
+              <div class="photo-placeholder-label">Macro Photography — Precision Machined Parts<br>Stainless Steel &middot; Aluminum &middot; Brass &middot; Copper</div>
             </div>
           </div>
         </div>
