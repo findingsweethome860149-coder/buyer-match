@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>RI YUE XING — Exhibition Brochure Wireframe</title>
+<style>
+  :root{
+    --ink:#263238;
+    --sub:#607d8b;
+    --line:#90a4ae;
+    --panel:#eceff1;
+    --panel2:#e1e4e7;
+    --accent:#0d47a1;
+    --accent-soft:#e3ecf9;
+    --paper:#ffffff;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:"Helvetica Neue",Arial,"Segoe UI",sans-serif;
+    color:var(--ink);
+    background:#cfd8dc;
+  }
+  @page{ size:297mm 210mm landscape; margin:0; }
+  @media print{
+    body{ background:#fff; }
+    .page{ box-shadow:none !important; margin:0 !important; page-break-after:always; }
+    .notes{ page-break-after:always; }
+  }
+
+  /* ---------- Wireframe canvas ---------- */
+  .page{
+    width:297mm;
+    height:210mm;
+    margin:10mm auto;
+    background:var(--paper);
+    box-shadow:0 0 0 1px #b0bec5, 0 6px 18px rgba(0,0,0,.15);
+    position:relative;
+    padding:8mm;
+    display:flex;
+    flex-direction:column;
+    gap:4mm;
+  }
+  .tag{
+    position:absolute; top:4mm; right:8mm;
+    font-size:9px; letter-spacing:.08em; color:var(--sub); text-transform:uppercase;
+  }
+  .wire{
+    border:1.6px dashed var(--line);
+    background:var(--panel);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    position:relative;
+    border-radius:2px;
+    min-height:0;
+  }
+  .img{
+    background:repeating-linear-gradient(45deg, var(--panel) 0 10px, var(--panel2) 10px 20px);
+    border-color:#78909c;
+  }
+  .label{
+    font-size:10.5px;
+    font-weight:700;
+    letter-spacing:.05em;
+    text-transform:uppercase;
+    color:var(--sub);
+  }
+  .sublabel{
+    font-size:9px;
+    color:#90a4ae;
+    margin-top:2px;
+  }
+  .row{ display:flex; gap:4mm; }
+  .col{ display:flex; flex-direction:column; gap:4mm; }
+  .grow{ flex:1; }
+
+  /* Fake text lines to indicate copy blocks */
+  .tline{ height:3.2mm; background:#cfd8dc; border-radius:2px; margin:2mm auto 0; }
+  .tline.w80{ width:80%; }
+  .tline.w60{ width:60%; }
+  .tline.w40{ width:40%; }
+
+  .hero-overlay{
+    position:absolute; inset:0;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    background:linear-gradient(180deg, rgba(13,71,161,.06), rgba(13,71,161,.35));
+  }
+  .hero-title{
+    background:rgba(255,255,255,.92);
+    border:1.6px dashed var(--accent);
+    color:var(--accent);
+    font-weight:700;
+    font-size:15px;
+    padding:3mm 8mm;
+    letter-spacing:.03em;
+  }
+  .hero-sub{
+    background:rgba(255,255,255,.88);
+    border:1.2px dashed var(--sub);
+    color:var(--sub);
+    font-size:10px;
+    padding:1.5mm 6mm;
+    margin-top:2mm;
+  }
+
+  .icon-block{
+    border:1.4px dashed var(--line);
+    background:var(--paper);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:1.5mm; padding:2mm; text-align:center;
+  }
+  .icon-dot{
+    width:7mm; height:7mm; border-radius:50%;
+    border:1.4px dashed var(--accent);
+    display:flex; align-items:center; justify-content:center;
+    font-size:8px; color:var(--accent); font-weight:700;
+  }
+  .icon-block .cap{ font-size:8.5px; color:var(--ink); font-weight:600; line-height:1.25; }
+
+  .card{
+    border:1.4px dashed var(--line);
+    background:var(--paper);
+    display:flex; flex-direction:column;
+    padding:3mm;
+    gap:2mm;
+  }
+  .card .thumb{ height:16mm; }
+  .card .name{ font-size:10px; font-weight:700; }
+  .card .meta{ font-size:8px; color:var(--sub); }
+
+  .chip{
+    border:1.2px dashed var(--sub);
+    border-radius:12px;
+    font-size:8.5px;
+    color:var(--sub);
+    padding:1.5mm 3mm;
+  }
+  .chip-row{ display:flex; flex-wrap:wrap; gap:2mm; justify-content:center; }
+
+  .flow{ display:flex; align-items:center; justify-content:center; gap:2mm; flex-wrap:wrap; }
+  .flow .step{ border:1.2px dashed var(--sub); padding:1.5mm 3mm; font-size:8.5px; background:var(--paper); }
+  .flow .arrow{ color:var(--sub); font-size:11px; }
+  .flow.vert{ flex-direction:column; }
+
+  .stat{
+    font-size:16px; font-weight:800; color:var(--accent);
+  }
+
+  h1.pagehead{
+    margin:0; font-size:14px; letter-spacing:.03em; color:var(--ink);
+    border-bottom:1.6px dashed var(--line); padding-bottom:2mm;
+  }
+  h1.pagehead .n{ color:var(--accent); margin-right:2mm; }
+
+  .footerbar{
+    border-top:1.4px dashed var(--line);
+    display:flex; justify-content:space-between; align-items:center;
+    font-size:9px; color:var(--sub); padding-top:2mm;
+  }
+
+  /* ---------- Notes pages ---------- */
+  .notes{
+    width:297mm; min-height:210mm; margin:10mm auto; background:#fff;
+    box-shadow:0 0 0 1px #b0bec5, 0 6px 18px rgba(0,0,0,.15);
+    padding:14mm 16mm;
+  }
+  .notes h2{ font-size:17px; color:var(--accent); margin:0 0 2mm; }
+  .notes h2 span{ color:var(--sub); font-weight:400; font-size:12px; display:block; margin-top:1mm; }
+  .notes h3{ font-size:11.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--sub); margin:6mm 0 2mm; border-left:3px solid var(--accent); padding-left:2.5mm; }
+  .notes p, .notes li{ font-size:10.5px; line-height:1.6; color:#37474f; }
+  .notes ul{ margin:0; padding-left:5mm; }
+  .cols2{ display:grid; grid-template-columns:1fr 1fr; gap:0 10mm; }
+  .cols3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:0 8mm; }
+
+  .cover{
+    width:297mm; height:210mm; margin:10mm auto; background:var(--paper);
+    box-shadow:0 0 0 1px #b0bec5, 0 6px 18px rgba(0,0,0,.15);
+    display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center;
+    gap:6mm; padding:20mm;
+  }
+  .cover .kicker{ font-size:11px; letter-spacing:.2em; color:var(--sub); text-transform:uppercase; }
+  .cover h1{ font-size:30px; margin:0; color:var(--ink); }
+  .cover h2{ font-size:15px; font-weight:400; color:var(--accent); margin:0; }
+  .cover .meta-row{ display:flex; gap:10mm; margin-top:8mm; }
+  .cover .meta-box{ border:1.6px dashed var(--line); padding:4mm 8mm; font-size:10px; color:var(--sub); }
+  .cover .meta-box b{ display:block; color:var(--ink); font-size:11px; margin-bottom:1mm; }
+
+  .screen-note{
+    max-width:297mm; margin:6mm auto; padding:0 16mm; font-size:12px; color:#455a64; text-align:center;
+  }
+  @media print{ .screen-note{ display:none; } }
+</style>
+</head>
+<body>
+
+<div class="screen-note">Wireframe planning document — landscape A4 (297×210mm), print‑ready. Grayscale boxes and dashed borders indicate placeholder content only; no final artwork included.</div>
+
+<!-- ============ COVER ============ -->
+<div class="cover">
+  <div class="kicker">Exhibition Brochure — Wireframe Package</div>
+  <h1>RI YUE XING PRECISION INDUSTRIAL CO., LTD.</h1>
+  <h2>2026 Phoenix Fastener Show — 5‑Page Brochure Layout Structure</h2>
+  <div class="meta-row">
+    <div class="meta-box"><b>Format</b>5 pages · Landscape · A4 / 16:9</div>
+    <div class="meta-box"><b>Style</b>Industrial B2B · Precision engineering</div>
+    <div class="meta-box"><b>Audience</b>Purchasing Managers · Engineers · OEM · Distributors</div>
+  </div>
+  <div class="meta-row">
+    <div class="meta-box"><b>Maintain</b>Visual hierarchy, clean technical layout, engineering tone</div>
+    <div class="meta-box"><b>Avoid</b>Oversized claims, dense copy, consumer‑style marketing</div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- PAGE 1 — WIREFRAME -->
+<!-- ============================================================ -->
+<div class="page">
+  <div class="tag">Page 1 / 5 — Wireframe</div>
+  <div class="wire" style="height:20%;">
+    <div class="row grow" style="width:100%; height:100%; padding:3mm;">
+      <div class="wire img" style="width:22%;"><div><div class="label">Logo</div></div></div>
+      <div class="wire grow" style="justify-content:flex-end; padding-right:6mm;">
+        <div>
+          <div class="label">Company Name</div>
+          <div class="sublabel">RI YUE XING PRECISION INDUSTRIAL CO., LTD.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="wire img" style="height:40%;">
+    <div class="hero-overlay">
+      <div class="label" style="color:#78909c;">Hero Image — CNC Machining Process / Precision Components Close‑up</div>
+      <div class="hero-title">Precision CNC Machining Partner from Taiwan</div>
+      <div class="hero-sub">Specialized in Small Diameter Precision Components</div>
+    </div>
+  </div>
+
+  <div class="wire" style="height:30%; background:transparent; border:none;">
+    <div class="row grow" style="width:100%;">
+      <div class="icon-block grow"><div class="icon-dot">1987</div><div class="cap">Established<br>in 1987</div></div>
+      <div class="icon-block grow"><div class="icon-dot">CNC</div><div class="cap">CNC Precision<br>Machining</div></div>
+      <div class="icon-block grow"><div class="icon-dot">•</div><div class="cap">Small Parts<br>Specialist</div></div>
+      <div class="icon-block grow"><div class="icon-dot">OEM</div><div class="cap">OEM / ODM<br>Support</div></div>
+      <div class="icon-block grow"><div class="icon-dot">⇄</div><div class="cap">Flexible<br>Production</div></div>
+      <div class="icon-block grow"><div class="icon-dot">∞</div><div class="cap">Long‑Term<br>Partnership</div></div>
+    </div>
+  </div>
+
+  <div class="footerbar">
+    <span>📍 Kaohsiung, Taiwan</span>
+    <span>Tel / Email / Website — Contact block</span>
+  </div>
+</div>
+
+<!-- PAGE 1 — NOTES -->
+<div class="notes">
+  <h2>Page 1 — Company Profile <span>Layout goal: establish credibility and introduce RI YUE XING within the first three seconds of contact.</span></h2>
+
+  <div class="cols2">
+    <div>
+      <h3>Layout Explanation</h3>
+      <ul>
+        <li><b>Header (top 20%):</b> logo fixed left as the anchor readers scan first; company name right‑aligned in a single line so the strip stays low and doesn't compete with the hero.</li>
+        <li><b>Hero (middle 40%):</b> one full‑bleed image carries the emotional weight of the page; headline and subhead sit inside a light scrim so type stays legible over photography of any tone.</li>
+        <li><b>Key advantages (bottom 30%):</b> six equal‑width icon blocks in a single row create a scannable trust bar — the most common first read for a distributor deciding whether to stop at the booth.</li>
+        <li><b>Footer:</b> thin strip, location + contact only — no competing message.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Recommended Image Positions</h3>
+      <ul>
+        <li>Hero: horizontal CNC machining action shot (sparks/coolant/turning) <i>or</i> a macro shot of small precision parts on a dark background — either works, pick whichever photographs sharpest at 297mm wide.</li>
+        <li>Logo: top‑left, vector format, generous clear‑space (do not crop against the hero grid line).</li>
+        <li>No secondary photography needed on this page — keep it to one dominant image.</li>
+      </ul>
+      <h3>Recommended Text Blocks</h3>
+      <ul>
+        <li>H1 (hero): "Precision CNC Machining Partner from Taiwan" — max ~45 characters, one line.</li>
+        <li>Subhead: "Specialized in Small Diameter Precision Components" — one line, lighter weight.</li>
+        <li>6× advantage captions: 2–3 words each, no full sentences.</li>
+        <li>Footer: city/country + phone + email + website, single line.</li>
+      </ul>
+    </div>
+  </div>
+  <h3>Design Notes for Figma</h3>
+  <p>Build as 3 auto‑layout frames stacked vertically (Header / Hero / Advantages) at fixed heights 20% / 40% / 30% + footer, so the ratio holds if copy length changes. Hero uses an image fill with a linear‑gradient overlay component (reuse across pages 1–5 hero/section headers for consistency). Advantage row = one component instanced 6× with icon + 2‑line caption; swap the row to 2×3 automatically at narrower breakpoints if a digital/social‑cut version is ever needed.</p>
+</div>
+
+<!-- ============================================================ -->
+<!-- PAGE 2 — WIREFRAME -->
+<!-- ============================================================ -->
+<div class="page">
+  <div class="tag">Page 2 / 5 — Wireframe</div>
+  <h1 class="pagehead"><span class="n">02</span>Small Precision Parts Manufacturing</h1>
+
+  <div class="row" style="height:52%;">
+    <div class="col" style="width:40%;">
+      <div class="wire grow"><div><div class="label">Capability List</div>
+        <div class="sublabel">Swiss‑Type CNC Turning</div>
+        <div class="sublabel">CNC Turning</div>
+        <div class="sublabel">CNC Milling</div>
+        <div class="sublabel">Secondary Processing</div>
+        <div class="sublabel" style="margin-top:2mm;">(each item paired with a small technical icon)</div>
+      </div></div>
+    </div>
+    <div class="col grow">
+      <div class="row grow">
+        <div class="wire img grow"><div class="label">Photo — Small Precision Parts</div></div>
+        <div class="col grow">
+          <div class="wire img grow"><div class="label">Photo — Connector Parts</div></div>
+          <div class="wire img grow"><div class="label">Photo — Shaft Components</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row" style="height:38%;">
+    <div class="wire grow"><div>
+      <div class="label">Materials</div>
+      <div class="chip-row" style="margin-top:2mm;">
+        <span class="chip">Stainless Steel</span><span class="chip">Brass</span><span class="chip">Copper</span><span class="chip">Aluminum</span><span class="chip">Titanium</span>
+      </div>
+    </div></div>
+    <div class="wire grow"><div>
+      <div class="label">Precision</div>
+      <div class="stat">±0.01 mm</div>
+      <div class="sublabel">Tolerance Capability</div>
+    </div></div>
+    <div class="wire grow"><div>
+      <div class="label" style="margin-bottom:2mm;">Process Flow</div>
+      <div class="flow vert">
+        <div class="step">Drawing</div><div class="arrow">↓</div>
+        <div class="step">Machining</div><div class="arrow">↓</div>
+        <div class="step">Inspection</div><div class="arrow">↓</div>
+        <div class="step">Shipment</div>
+      </div>
+    </div></div>
+  </div>
+</div>
+
+<!-- PAGE 2 — NOTES -->
+<div class="notes">
+  <h2>Page 2 — Precision CNC Machining Solutions <span>Layout goal: prove manufacturing capability with a technical, credible reading order.</span></h2>
+  <div class="cols2">
+    <div>
+      <h3>Layout Explanation</h3>
+      <ul>
+        <li><b>Left column (40%):</b> capability list reads top‑to‑bottom like a spec sheet — icon + label pairs, no marketing copy, so an engineer can scan it in 5 seconds.</li>
+        <li><b>Right column (60%):</b> a 1‑large + 2‑stacked photo collage gives visual variety without a rigid grid; large image = hero part type, two smaller images = supporting part families.</li>
+        <li><b>Bottom strip:</b> three equal blocks (Materials / Precision / Process) act as a horizontal "spec bar" that buyers reference repeatedly — keep it visually distinct from the photo area above (light background fill) so it reads as reference data, not decoration.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Recommended Image Positions</h3>
+      <ul>
+        <li>Right‑large: small precision parts on neutral/dark background, top‑down or 3/4 angle.</li>
+        <li>Right‑upper‑small: connector parts, macro shot.</li>
+        <li>Right‑lower‑small: shaft components, macro shot, consistent lighting with the two above.</li>
+      </ul>
+      <h3>Recommended Text Blocks</h3>
+      <ul>
+        <li>Page title: "Small Precision Parts Manufacturing".</li>
+        <li>4 capability line items (2–4 words each).</li>
+        <li>Materials: 5 material chips, single words.</li>
+        <li>Precision: one number ("±0.01 mm") + one label — no paragraph.</li>
+        <li>Process flow: 4 single‑word steps joined by arrows.</li>
+      </ul>
+    </div>
+  </div>
+  <h3>Design Notes for Figma</h3>
+  <p>Right‑side collage should be one component with 3 image slots (1 large 1:1‑ish + 2 small 16:9) so photos can be swapped without breaking alignment. Bottom three blocks share one fixed height and a subtle divider (1px, 20% opacity) rather than heavy borders — keep the wireframe's dashed boxes but convert to hairlines in final art. Process‑flow arrows can be a small reusable "step chip" component reused on Page 4's inspection flow for visual consistency.</p>
+</div>
+
+<!-- ============================================================ -->
+<!-- PAGE 3 — WIREFRAME -->
+<!-- ============================================================ -->
+<div class="page">
+  <div class="tag">Page 3 / 5 — Wireframe</div>
+  <h1 class="pagehead"><span class="n">03</span>Precision Components Across Industrial Applications</h1>
+
+  <div class="col grow" style="display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr 1fr; gap:4mm; height:100%;">
+    <div class="card"><div class="thumb wire img"></div><div class="name">Electronics &amp; Connectors</div><div class="meta">Connector Pins · Contact Components</div></div>
+    <div class="card"><div class="thumb wire img"></div><div class="name">Automotive</div><div class="meta">Shafts · Pins</div></div>
+    <div class="card"><div class="thumb wire img"></div><div class="name">Medical Applications</div><div class="meta">Precision Components</div></div>
+    <div class="card"><div class="thumb wire img"></div><div class="name">Motorcycle &amp; Bicycle</div><div class="meta">Mechanical Parts</div></div>
+    <div class="card"><div class="thumb wire img"></div><div class="name">Hydraulic &amp; Pneumatic</div><div class="meta">Precision Fittings</div></div>
+    <div class="card"><div class="thumb wire img"></div><div class="name">Fastener &amp; Hardware</div><div class="meta">Custom Components</div></div>
+  </div>
+</div>
+
+<!-- PAGE 3 — NOTES -->
+<div class="notes">
+  <h2>Page 3 — Industries We Serve <span>Layout goal: let each buyer type self‑identify within seconds.</span></h2>
+  <div class="cols2">
+    <div>
+      <h3>Layout Explanation</h3>
+      <ul>
+        <li>2 columns × 3 rows, equal‑size cards — no visual hierarchy between industries since RI YUE XING serves them equally; a grid (not a list) signals breadth of application.</li>
+        <li>Each card: small icon/photo top, industry name, 1–2 typical component examples — consistent structure lets buyers compare across the page instantly.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Recommended Image Positions</h3>
+      <ul>
+        <li>Small icon or cropped photo per card (top ~55% of card height); photography preferred over icons if consistent lighting/background is available, otherwise use simple line icons for a cleaner technical look.</li>
+      </ul>
+      <h3>Recommended Text Blocks</h3>
+      <ul>
+        <li>Industry name: bold, 1 line.</li>
+        <li>Typical components: 1–2 short phrases, not full sentences.</li>
+      </ul>
+    </div>
+  </div>
+  <h3>Design Notes for Figma</h3>
+  <p>Build one "industry card" component (image slot + name + component tags) and instance it 6×, so updating one card's style updates all. Keep card padding identical to Page 5's product cards for cross‑page rhythm. If six photos of consistent quality aren't available, fall back to a single icon set (outline style, 2px stroke) for visual consistency over photo realism.</p>
+</div>
+
+<!-- ============================================================ -->
+<!-- PAGE 4 — WIREFRAME -->
+<!-- ============================================================ -->
+<div class="page">
+  <div class="tag">Page 4 / 5 — Wireframe</div>
+  <h1 class="pagehead"><span class="n">04</span>Reliable Quality Control System</h1>
+
+  <div class="row" style="height:62%;">
+    <div class="wire grow">
+      <div>
+        <div class="label" style="margin-bottom:2mm;">Quality Flow Diagram</div>
+        <div class="flow vert">
+          <div class="step">Incoming Material Inspection</div><div class="arrow">↓</div>
+          <div class="step">In‑Process Inspection</div><div class="arrow">↓</div>
+          <div class="step">Final Inspection</div>
+        </div>
+      </div>
+    </div>
+    <div class="grow" style="display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; gap:3mm;">
+      <div class="wire img"><div class="label">CMM</div></div>
+      <div class="wire img"><div class="label">Micrometer</div></div>
+      <div class="wire img"><div class="label">Height Gauge</div></div>
+      <div class="wire img"><div class="label">Measuring Tools</div></div>
+    </div>
+  </div>
+
+  <div class="row" style="height:28%;">
+    <div class="card grow" style="align-items:center; justify-content:center;"><div class="name">Inspection Report</div></div>
+    <div class="card grow" style="align-items:center; justify-content:center;"><div class="name">Material Certificate</div></div>
+    <div class="card grow" style="align-items:center; justify-content:center;"><div class="name">8D Corrective Action</div></div>
+  </div>
+</div>
+
+<!-- PAGE 4 — NOTES -->
+<div class="notes">
+  <h2>Page 4 — Quality Assurance <span>Layout goal: build procurement confidence through visible process, not claims.</span></h2>
+  <div class="cols2">
+    <div>
+      <h3>Layout Explanation</h3>
+      <ul>
+        <li><b>Left (50%):</b> vertical 3‑step flow diagram mirrors the process‑flow component from Page 2 for visual consistency across the brochure.</li>
+        <li><b>Right (50%):</b> 2×2 equipment photo grid — evidence over adjectives; buyers trust seeing the actual measuring tools more than reading "strict QC."</li>
+        <li><b>Bottom strip:</b> three document cards reinforce that documentation (traceability) is part of the offer, which matters most to purchasing managers and OEMs.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Recommended Image Positions</h3>
+      <ul>
+        <li>2×2 grid: CMM, micrometer, height gauge, general measuring tools — real equipment photos, consistent angle/background across all four.</li>
+      </ul>
+      <h3>Recommended Text Blocks</h3>
+      <ul>
+        <li>3 flow steps, 2–3 words each.</li>
+        <li>3 document card labels only — no descriptive paragraphs; a thumbnail of each document (blurred/sample) can replace the label if available.</li>
+      </ul>
+    </div>
+  </div>
+  <h3>Design Notes for Figma</h3>
+  <p>Reuse the Page 2 "step chip" component rotated to vertical for the flow diagram. Equipment grid = one component with 4 photo slots at equal aspect ratio. Document cards can later hold a faint document‑thumbnail image behind the label for realism; keep the card component identical in size to Page 3's industry cards so the grid rhythm feels intentional across the set.</p>
+</div>
+
+<!-- ============================================================ -->
+<!-- PAGE 5 — WIREFRAME -->
+<!-- ============================================================ -->
+<div class="page">
+  <div class="tag">Page 5 / 5 — Wireframe</div>
+  <h1 class="pagehead"><span class="n">05</span>Precision CNC Components Portfolio</h1>
+
+  <div class="grow" style="display:grid; grid-template-columns:1fr 1fr 1fr; grid-template-rows:1fr 1fr 1fr; gap:3mm; height:70%;">
+    <div class="card"><div class="thumb wire img"></div><div class="name">Precision Turned Parts</div><div class="meta">Material: — · Application: —</div></div>
+    <div class="card"><div class="thumb wire img"></div><div class="name">Connector Components</div><div class="meta">Material: Brass / Copper · Application: Electronics</div></div>
+    <div class="card"><div class="thumb wire img"></div><div class="name">Medical Components</div><div class="meta">Material: — · Application: Medical</div></div>
+    <div class="card"><div class="thumb wire img"></div><div class="name">Brass Components</div><div class="meta">Material: Brass · Application: —</div></div>
+    <div class="card"><div class="thumb wire img"></div><div class="name">Copper Components</div><div class="meta">Material: Copper · Application: —</div></div>
+    <div class="card"><div class="thumb wire img"></div><div class="name">Stainless Steel Components</div><div class="meta">Material: Stainless Steel · Application: —</div></div>
+    <div class="card"><div class="thumb wire img"></div><div class="name">Custom CNC Components</div><div class="meta">Material: Per Drawing · Application: —</div></div>
+    <div class="card" style="align-items:center; justify-content:center; background:var(--accent-soft); border-color:var(--accent);"><div class="name" style="color:var(--accent);">Your Part Here?</div><div class="meta">Send us your drawing</div></div>
+    <div class="wire" style="border-style:solid; background:transparent;"><div class="sublabel">Logo / white‑space cell<br>(keeps grid balanced)</div></div>
+  </div>
+
+  <div class="footerbar" style="margin-top:3mm;">
+    <span class="label" style="color:var(--accent);">Send us your drawing for evaluation.</span>
+    <span>Email — Website</span>
+  </div>
+</div>
+
+<!-- PAGE 5 — NOTES -->
+<div class="notes">
+  <h2>Page 5 — Product Catalog <span>Layout goal: close with tangible proof of capability and a direct next action.</span></h2>
+  <div class="cols2">
+    <div>
+      <h3>Layout Explanation</h3>
+      <ul>
+        <li>3×3 grid holds the 7 named product categories; the 8th cell becomes a soft call‑to‑action card ("Your Part Here?") and the 9th a logo/white‑space cell — this keeps the grid visually complete without inventing an 8th fake category.</li>
+        <li>Each card follows the same structure as Pages 3–4's cards (photo / name / spec line) so the brochure feels like one system by the final page.</li>
+        <li>Footer CTA is the last thing the reader sees — deliberately simple, one line + contact.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Recommended Image Positions</h3>
+      <ul>
+        <li>7 product photos, one per named category, consistent background/lighting/angle (top‑down on neutral surface recommended for a technical catalog feel).</li>
+      </ul>
+      <h3>Recommended Text Blocks</h3>
+      <ul>
+        <li>Category name (bold, 1 line).</li>
+        <li>Material + Application as one short meta line each, not paragraphs.</li>
+        <li>Footer CTA: "Send us your drawing for evaluation." + email + website.</li>
+      </ul>
+    </div>
+  </div>
+  <h3>Design Notes for Figma</h3>
+  <p>Single "product card" component reused 7× (photo slot + name + 2 meta fields); the CTA card is the same component with a color‑fill variant. Keep footer CTA typographically distinct (accent color) since it's the brochure's final conversion moment — it should read as an invitation, not another spec line.</p>
+</div>
+
+<!-- ============================================================ -->
+<!-- GLOBAL FIGMA / PRODUCTION NOTES -->
+<!-- ============================================================ -->
+<div class="notes">
+  <h2>Global Design Notes <span>For the Figma build phase, applying across all 5 pages.</span></h2>
+  <div class="cols3">
+    <div>
+      <h3>Grid &amp; System</h3>
+      <ul>
+        <li>Canvas: 297×210mm (A4 landscape) or 1920×1080 (16:9) — build at 16:9 first, it maps cleanly to A4 with minor margin adjustment.</li>
+        <li>Consistent 8mm outer margin on every page.</li>
+        <li>Shared component library: header bar, hero overlay, icon block, step‑chip, card (photo+name+meta), footer bar.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Type &amp; Color</h3>
+      <ul>
+        <li>One display weight for page titles, one body weight for meta/captions — avoid a third weight.</li>
+        <li>Neutral grayscale base + a single accent color (e.g. deep industrial blue) reserved for CTAs and key stats (±0.01mm, "Send us your drawing").</li>
+        <li>No gradients or consumer‑style color blocking — flat fills only.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Photography</h3>
+      <ul>
+        <li>Consistent lighting/background across all product and equipment photography — this matters more than photo count for a "precision" feel.</li>
+        <li>Prefer top‑down or 3/4 macro shots for parts; straight‑on shots for equipment.</li>
+        <li>Hero image (Page 1) is the one place for a dynamic/action shot — everything else should read as calm, technical, and repeatable.</li>
+      </ul>
+    </div>
+  </div>
+  <h3>Cross‑Page Consistency Checklist</h3>
+  <ul>
+    <li>Page header treatment (title style + rule line) identical on Pages 2–5.</li>
+    <li>Card component (photo/name/meta) shared by Pages 3, 4 (document cards), and 5.</li>
+    <li>Process/flow chip shared by Pages 2 and 4.</li>
+    <li>Footer bar shared by Pages 1 and 5 (contact info + CTA).</li>
+  </ul>
+  <h3>Explicitly Avoid</h3>
+  <ul>
+    <li>Large, unverifiable factory‑scale claims ("world's largest," etc.).</li>
+    <li>Dense paragraph copy anywhere — every text block above is capped at label/phrase length by design.</li>
+    <li>Stock‑photo consumer imagery, lifestyle photography, or playful iconography — this is a technical procurement document, not a retail flyer.</li>
+  </ul>
+</div>
+
+</body>
+</html>
